@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* ---------- PADRÃO TELA ---------- */
+.container-relatorio {
+    max-width: 1200px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 6px;
+}
+
+.header-relatorio {
+    text-align: center;
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.header-relatorio h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.header-relatorio p {
+    margin: 0;
+    font-size: 12px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+th, td {
+    border: 1px solid #444;
+    padding: 4px 6px;
+    text-align: center;
+    line-height: 1.1;
+}
+
+th {
+    background: #1e293b;
+    color: #fff;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background: #f5f7fa;
+}
+
+/* ---------- IMPRESSÃO ---------- */
+@media print {
+
+    body {
+        margin: 0;
+        background: white;
+        font-size: 11px;
+    }
+
+    .container-relatorio {
+        max-width: 100%;
+        padding: 6px;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .header-relatorio h2 {
+        font-size: 16px;
+    }
+
+    .header-relatorio p {
+        font-size: 10px;
+    }
+
+    table {
+        font-size: 10px;
+        page-break-inside: auto;
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tfoot {
+        display: table-footer-group;
+    }
+
+    th, td {
+        padding: 3px 4px;
+    }
+}
+</style>
+
+<div class="container-relatorio">
+
+    <div class="header-relatorio">
+        <h2>Relatório de Escolas Participantes - SABE</h2>
+        <p>Secretaria Municipal de Educação - Juazeiro</p>
+        <p>Núcleo de Avaliação e Monitoramento - NAM</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Ano</th>
+                <th>Escola</th>
+                <th>Localidade</th>
+                <th>Séries</th>
+                <th>Disciplinas</th>
+                <th>Total Avaliados</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in dados %}
+            <tr>
+                <td>{{ d.ano }}</td>
+                <td style="text-align:left">{{ d.escola__nome }}</td>
+                <td>{{ d.escola__localidade__nome }}</td>
+                <td>{{ d.series }}</td>
+                <td>{{ d.disciplinas }}</td>
+                <td>{{ d.total_avaliados }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">Nenhum dado encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+
+
+{% endblock %}

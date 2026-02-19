@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- Bibliotecas necessárias -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
 <style>
-    /* Layout da página */
     .boletim-container {
         max-width: 100%;
         margin: 0 auto;
@@ -15,7 +18,7 @@
     .boletim-header {
         text-align: center;
         margin-bottom: 10px;
-        border-bottom: 1px solid #000;
+        border-bottom: 2px solid #333;
         padding-bottom: 5px;
     }
 
@@ -42,9 +45,10 @@
     }
 
     .info-box {
-        background: #eee;
+        background: #f5f5f5;
         padding: 4px 6px;
         border-radius: 3px;
+        border: 1px solid #ccc;
     }
 
     .table-wrapper {
@@ -55,7 +59,6 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 12px;
-        page-break-inside: auto;
         margin-bottom: 12px;
     }
 
@@ -64,43 +67,137 @@
         padding: 3px 4px;
         text-align: center;
         line-height: 1.0;
-        height: auto;
         white-space: nowrap;
     }
 
     th {
-        background: #c0bcbc;
-        color: #692020;
+        background: #d9d9d9;
+        color: #000;
+        font-weight: bold;
     }
 
     h4 {
-        margin: 8px 0 4px 0;
-        font-size: 13px;
+        margin: 20px 0 10px 0;
+        font-size: 14px;
         font-weight: bold;
         text-align: left;
+        border-left: 4px solid #2c3e50;
+        padding-left: 8px;
     }
 
-    /* Ajustes para impressão */
+    /* Interpretação */
+    .interpretacao-box {
+        background-color: #f0f7fb;
+        border-left: 4px solid #2980b9;
+        padding: 12px 16px;
+        margin: 20px 0;
+        font-size: 13px;
+        line-height: 1.5;
+        border-radius: 0 6px 6px 0;
+    }
+
+    .interpretacao-box p {
+        margin: 0 0 8px 0;
+    }
+
+    .interpretacao-box ul {
+        margin: 0 0 8px 0;
+        padding-left: 20px;
+    }
+
+    /* Grid de gráficos de pizza */
+    .pizza-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+
+    .pizza-box {
+        border: 1px solid #999;
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #fafafa;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pizza-box canvas {
+        width: 100%;
+        max-height: 220px;
+        margin-bottom: 10px;
+    }
+
+    .pizza-box p {
+        margin: 5px 0 0;
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    /* Legenda textual */
+    .legenda-valores {
+        margin-top: 10px;
+        font-size: 11px;
+        text-align: left;
+        border-top: 1px dashed #ccc;
+        padding-top: 8px;
+    }
+
+    .legenda-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+
+    .cor-quadrado {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: 6px;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .sem-dados {
+        text-align: center;
+        color: #999;
+        font-style: italic;
+        padding: 50px 0;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+
+    /* Impressão */
     @media print {
         body {
-            margin: 0;
-            font-size: 12px;
+            background: #fff;
+            font-size: 10pt;
         }
-        .boletim-container {
-            padding: 5px;
+        .pizza-box {
+            border: 1px solid #000;
+            box-shadow: none;
+            background: #fff;
+            page-break-inside: avoid;
         }
-        .table-wrapper {
-            overflow: visible;
+        .info-box {
+            background: #fff;
+            border: 1px solid #000;
         }
-        table, th, td {
-            border: 1px solid #939191;
+        th {
+            background: #eee !important;
+        }
+        .pizza-box canvas {
+            filter: grayscale(100%);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     }
 </style>
 
 <div class="boletim-container">
 
-    <!-- CABEÇALHO -->
+    <!-- Cabeçalho -->
     <div class="boletim-header">
         <h2>Boletim de Desempenho - SABE</h2>
         <p>Secretaria Municipal de Educação - Juazeiro</p>
@@ -108,7 +205,7 @@
         <p>Núcleo de Avaliação e Monitoramento - NAM</p>
     </div>
 
-    <!-- DADOS DA ESCOLA -->
+    <!-- Dados da escola -->
     <div class="info-escola">
         <div class="info-box"><b>Escola:</b> {{ escola.nome }}</div>
         <div class="info-box"><b>INEP:</b> {{ escola.inep }}</div>
@@ -116,9 +213,78 @@
         <div class="info-box"><b>Gestor:</b> {{ escola.gestor }}</div>
     </div>
 
-    <!-- TABELA 1 – PROFICIÊNCIA -->
-    <h4>Proficiência Média e Padrão de Desempenho</h4>
+    <!-- Título dos gráficos -->
+    <h4>Distribuição do Padrão de Desempenho por Disciplina ({{ ultimo_ano }}) - Média das Séries</h4>
 
+    {% if dados_grafico %}
+    <!-- Bloco de interpretação automática -->
+    <div class="interpretacao-box">
+        <p style="margin: 0 0 8px 0; font-weight: bold;">📊 Como interpretar os gráficos de pizza</p>
+        <p style="margin: 0 0 6px 0;">
+            Os gráficos abaixo representam a <strong>distribuição percentual média dos alunos por nível de proficiência</strong> 
+            em cada disciplina, considerando <strong>todas as séries da escola no ano de {{ ultimo_ano }}</strong>. 
+            Cada fatia corresponde a um nível:
+        </p>
+        <ul style="margin: 0 0 8px 0; padding-left: 20px;">
+            <li><span style="color:#e74c3c; font-weight:bold;">Abaixo do Básico</span> – alunos que não atingiram o mínimo esperado.</li>
+            <li><span style="color:#f39c12; font-weight:bold;">Básico</span> – alunos com domínio parcial, mas ainda insuficiente.</li>
+            <li><span style="color:#3498db; font-weight:bold;">Adequado</span> – alunos que demonstram o aprendizado esperado.</li>
+            <li><span style="color:#2ecc71; font-weight:bold;">Avançado</span> – alunos que superam as expectativas.</li>
+        </ul>
+        <p style="margin: 0;">
+            Quanto maior a fatia verde/azul, melhor o desempenho na disciplina. 
+            {% if dados_grafico|length >= 2 %}
+                Por exemplo, em <strong>{{ dados_grafico.0.disciplina }}</strong> a maior concentração está no nível 
+                <strong>
+                {% if dados_grafico.0.adequado > dados_grafico.0.avancado %}
+                    Adequado ({{ dados_grafico.0.adequado }}%)
+                {% else %}
+                    Avançado ({{ dados_grafico.0.avancado }}%)
+                {% endif %}
+                </strong>, 
+                enquanto em <strong>{{ dados_grafico.1.disciplina }}</strong> o percentual de alunos abaixo do básico é de 
+                <strong>{{ dados_grafico.1.abaixo_basico }}%</strong>, indicando a necessidade de intervenções pedagógicas focadas.
+            {% else %}
+                Observe as diferenças entre as disciplinas para planejar ações de melhoria.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Grid de gráficos de pizza com legenda textual -->
+    <div class="pizza-grid">
+        {% for item in dados_grafico %}
+        <div class="pizza-box">
+            <canvas id="pizza-{{ forloop.counter }}"></canvas>
+            <p><strong>{{ item.disciplina }}</strong></p>
+            
+            <!-- Legenda com os valores numéricos -->
+            <div class="legenda-valores">
+                <div class="legenda-item">
+                    <span class="cor-quadrado" style="background:#e74c3c;"></span>
+                    <span>Abaixo do Básico: <strong>{{ item.abaixo_basico|floatformat:1 }}%</strong></span>
+                </div>
+                <div class="legenda-item">
+                    <span class="cor-quadrado" style="background:#f39c12;"></span>
+                    <span>Básico: <strong>{{ item.basico|floatformat:1 }}%</strong></span>
+                </div>
+                <div class="legenda-item">
+                    <span class="cor-quadrado" style="background:#3498db;"></span>
+                    <span>Adequado: <strong>{{ item.adequado|floatformat:1 }}%</strong></span>
+                </div>
+                <div class="legenda-item">
+                    <span class="cor-quadrado" style="background:#2ecc71;"></span>
+                    <span>Avançado: <strong>{{ item.avancado|floatformat:1 }}%</strong></span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="sem-dados">Nenhum dado disponível para o gráfico.</div>
+    {% endif %}
+
+    <!-- Tabela 1: Proficiência Média e Padrão -->
+    <h4>Proficiência Média e Padrão de Desempenho</h4>
     <div class="table-wrapper">
         <table>
             <thead>
@@ -146,18 +312,13 @@
                         <td>{{ a.padrao|default:"-" }}</td>
                     {% endfor %}
                 </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="{{ colspan }}">Nenhum dado encontrado.</td>
-                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- TABELA 2 – DISTRIBUIÇÃO -->
+    <!-- Tabela 2: Distribuição Percentual por Nível -->
     <h4>Distribuição Percentual por Nível de Aprendizagem</h4>
-
     <div class="table-wrapper">
         <table>
             <thead>
@@ -170,10 +331,10 @@
                 </tr>
                 <tr>
                     {% for ano in anos %}
-                        <th>AB (%)</th>
-                        <th>B (%)</th>
-                        <th>A (%)</th>
-                        <th>AV (%)</th>
+                        <th>AB</th>
+                        <th>B</th>
+                        <th>A</th>
+                        <th>AV</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -182,7 +343,6 @@
                 <tr>
                     <td>{{ linha.serie }}</td>
                     <td>{{ linha.disciplina }}</td>
-
                     {% for a in linha.anos %}
                         <td>{{ a.abaixo_basico|floatformat:1 }}</td>
                         <td>{{ a.basico|floatformat:1 }}</td>
@@ -190,15 +350,88 @@
                         <td>{{ a.avancado|floatformat:1 }}</td>
                     {% endfor %}
                 </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="{{ colspan_dist }}">Nenhum dado encontrado.</td>
-                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
 </div>
+
+<!-- Dados do gráfico em JSON -->
+{{ dados_grafico|json_script:"dados-grafico" }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dadosElement = document.getElementById('dados-grafico');
+        if (!dadosElement) return;
+
+        let dados;
+        try {
+            dados = JSON.parse(dadosElement.textContent);
+        } catch (e) {
+            console.error('Erro ao parsear dados:', e);
+            return;
+        }
+
+        if (!dados || dados.length === 0) return;
+
+        const cores = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71']; // AB, B, A, AV
+
+        dados.forEach((item, index) => {
+            const canvasId = `pizza-${index+1}`;
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            new Chart(canvas.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: ['Abaixo do Básico', 'Básico', 'Adequado', 'Avançado'],
+                    datasets: [{
+                        data: [
+                            item.abaixo_basico,
+                            item.basico,
+                            item.adequado,
+                            item.avancado
+                        ],
+                        backgroundColor: cores,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 10 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percent = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value.toFixed(1)}% (${percent}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: true,
+                            color: '#fff',
+                            formatter: (value, context) => {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percent = ((value / total) * 100).toFixed(1);
+                                return percent + '%';
+                            },
+                            font: { weight: 'bold', size: 11 }
+                        }
+                    }
+                }
+            });
+        });
+    });
+</script>
 
 {% endblock %}

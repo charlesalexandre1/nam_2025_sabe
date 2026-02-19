@@ -592,8 +592,139 @@ from collections import defaultdict
 from django.shortcuts import render, get_object_or_404
 from .models import Escola, Serie, Disciplina, DesempenhoEscola
 
-
 def boletim_escola(request, escola_id):
+    escola = get_object_or_404(Escola, id=escola_id)
+
+    series = Serie.objects.all().order_by('nome')
+    disciplinas = Disciplina.objects.all().order_by('nome')
+
+    # 🔁 Converte para lista para permitir indexação negativa (anos[-1])
+    anos = list(
+        DesempenhoEscola.objects
+        .filter(escola=escola)
+        .values_list('ano', flat=True)
+        .distinct()
+        .order_by('ano')
+    )
+
+    desempenhos = {}
+    for d in DesempenhoEscola.objects.filter(escola=escola).select_related('serie', 'disciplina'):
+        desempenhos[(d.serie.id, d.disciplina.id, d.ano)] = d
+
+    boletim = []
+    distribuicao = []
+
+    for serie in series:
+        for disciplina in disciplinas:
+
+            linha = {
+                'serie': serie.nome,
+                'disciplina': disciplina.nome,
+                'anos': []
+            }
+
+            linha_dist = {
+                'serie': serie.nome,
+                'disciplina': disciplina.nome,
+                'anos': []
+            }
+
+            for ano in anos:
+                d = desempenhos.get((serie.id, disciplina.id, ano))
+
+                if d:
+                    prof = float(d.proficiencia_media)
+                    participacao = float(d.taxa_participacao or 0)
+
+                    ab = float(d.abaixo_basico or 0)
+                    ba = float(d.basico or 0)
+                    ad = float(d.adequado or 0)
+                    av = float(d.avancado or 0)
+
+                    # 🔧 Correção automática apenas para 2023
+                    if ano == 2023:
+                        if participacao <= 1:
+                            participacao *= 100
+
+                        if ab <= 1: ab *= 100
+                        if ba <= 1: ba *= 100
+                        if ad <= 1: ad *= 100
+                        if av <= 1: av *= 100
+
+                    padrao = calcular_padrao(serie.nome, disciplina.nome, prof)
+
+                else:
+                    prof = participacao = padrao = None
+                    ab = ba = ad = av = None
+
+                linha['anos'].append({
+                    'ano': ano,
+                    'proficiencia': prof,
+                    'participacao': participacao,
+                    'padrao': padrao
+                })
+
+                linha_dist['anos'].append({
+                    'ano': ano,
+                    'abaixo_basico': ab,
+                    'basico': ba,
+                    'adequado': ad,
+                    'avancado': av
+                })
+
+            boletim.append(linha)
+            distribuicao.append(linha_dist)
+
+    # --- GRÁFICO: agregação por disciplina no último ano ---
+    ultimo_ano = anos[-1] if anos else None
+    grafico_data = {}
+
+    for item in distribuicao:
+        disciplina = item['disciplina']
+        dados_ano = next((d for d in item['anos'] if d['ano'] == ultimo_ano), None)
+        if dados_ano and all(v is not None for v in [dados_ano['abaixo_basico'], dados_ano['basico'], dados_ano['adequado'], dados_ano['avancado']]):
+            if disciplina not in grafico_data:
+                grafico_data[disciplina] = {
+                    'soma_ab': 0,
+                    'soma_b': 0,
+                    'soma_ad': 0,
+                    'soma_av': 0,
+                    'count': 0
+                }
+            grafico_data[disciplina]['soma_ab'] += dados_ano['abaixo_basico']
+            grafico_data[disciplina]['soma_b'] += dados_ano['basico']
+            grafico_data[disciplina]['soma_ad'] += dados_ano['adequado']
+            grafico_data[disciplina]['soma_av'] += dados_ano['avancado']
+            grafico_data[disciplina]['count'] += 1
+
+    dados_grafico = []
+    for disciplina, valores in grafico_data.items():
+        count = valores['count']
+        if count > 0:
+            dados_grafico.append({
+                'disciplina': disciplina,
+                'abaixo_basico': round(valores['soma_ab'] / count, 2),
+                'basico': round(valores['soma_b'] / count, 2),
+                'adequado': round(valores['soma_ad'] / count, 2),
+                'avancado': round(valores['soma_av'] / count, 2),
+            })
+
+    dados_grafico.sort(key=lambda x: x['disciplina'])
+    # ---------------------------------------------------------
+
+    return render(request, 'dashboard/boletim_escola.html', {
+        'escola': escola,
+        'boletim': boletim,
+        'distribuicao': distribuicao,
+        'anos': anos,
+        'colspan': 2 + (len(anos) * 2),
+        'colspan_dist': 2 + (len(anos) * 4),
+        'dados_grafico': dados_grafico,
+        'ultimo_ano': ultimo_ano,
+    })
+
+
+def boletim_escola_old(request, escola_id): ###### anterior
     escola = get_object_or_404(Escola, id=escola_id)
 
     series = Serie.objects.all().order_by('nome')
@@ -780,7 +911,6 @@ def boletim_escola_sem(request, escola_id):
 
 
 from django.template.loader import render_to_string
-
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
@@ -941,3 +1071,51 @@ def classificar_padrao_desempenho(serie, disciplina, proficiencia):
                 return "Avançado"
 
     return "Não classificado"
+
+
+##########################################
+
+from django.shortcuts import render
+from django.db.models import Sum, Count, Max
+from .models import DesempenhoEscola
+
+
+def relatorio_escolas_participantes(request):
+
+    queryset = DesempenhoEscola.objects.select_related(
+        'escola', 'escola__localidade', 'disciplina', 'serie'
+    )
+
+    localidade = request.GET.get('localidade')
+    escola = request.GET.get('escola')
+    ano_inicio = request.GET.get('ano_inicio')
+    ano_fim = request.GET.get('ano_fim')
+
+    if localidade:
+        queryset = queryset.filter(escola__localidade_id=localidade)
+
+    if escola:
+        queryset = queryset.filter(escola_id=escola)
+
+    if ano_inicio and ano_fim:
+        queryset = queryset.filter(ano__range=[ano_inicio, ano_fim])
+
+    dados = (
+        queryset
+        .values(
+            'ano',
+            'escola__id',
+            'escola__nome',
+            'escola__localidade__nome'
+        )
+        .annotate(
+            total_avaliados=Sum('alunos_avaliados'),
+            series=Count('serie_id', distinct=True),
+            disciplinas=Count('disciplina_id', distinct=True),
+        )
+        .order_by('ano', 'escola__nome')
+    )
+
+    return render(request, 'dashboard/relatorio_escolas_participantes.html', {
+        'dados': dados
+    })

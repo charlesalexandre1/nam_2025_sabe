@@ -42,6 +42,8 @@ urlpatterns = [
     path('dashboard/boletim-html/<int:escola_id>/', views.boletim_escola, name='boletim_escola_html'),
     path('boletim/<int:escola_id>/', views.boletim_escola, name='boletim_escola'),
     path('dashboard/boletim_escola/', views.selecionar_escola_boletim, name='selecionar_escola_boletim'),
+    path('dashboard/boletim_escola/', views.selecionar_escola_boletim, name='selecionar_escola_boletim'),
+    path('escolas-participantes/', views.relatorio_escolas_participantes, name='relatorio_escolas_participantes'),
 
 ]
 
