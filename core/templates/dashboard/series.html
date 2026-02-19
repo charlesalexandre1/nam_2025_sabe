@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>📚 Desempenho por Série</h2>
+
+<select id="ano" onchange="carregar()">
+    {% for a in anos %}
+    <option value="{{ a }}">{{ a }}</option>
+    {% endfor %}
+</select>
+
+<select id="disciplina" onchange="carregar()">
+    <option value="">Todas Disciplinas</option>
+    {% for d in disciplinas %}
+    <option value="{{ d.id }}">{{ d.nome }}</option>
+    {% endfor %}
+</select>
+
+<canvas id="grafico"></canvas>
+
+<script>
+let grafico;
+
+function carregar(){
+    fetch(`/dashboard/api/series/?ano=${ano.value}&disciplina=${disciplina.value}`)
+    .then(r=>r.json())
+    .then(d=>{
+        if(grafico)grafico.destroy();
+        grafico=new Chart(document.getElementById('grafico'),{
+            type:'bar',
+            data:{
+                labels:d.dados.map(i=>i.serie__nome),
+                datasets:[{
+                    label:'Proficiência',
+                    data:d.dados.map(i=>i.media)
+                }]
+            }
+        });
+    });
+}
+
+window.onload=carregar;
+</script>
+
+{% endblock %}

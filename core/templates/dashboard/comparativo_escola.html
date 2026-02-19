@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Comparativo por Escola - SABE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: Arial; background: #f4f6f9; margin: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .filtros, .card, .grafico { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #1f2937; color: white; }
+        .voltar { text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<a href="/dashboard/" class="voltar">⬅ Voltar</a>
+
+<h2>📊 Comparativo por Escola e Série</h2>
+
+<div class="filtros">
+    <form method="get">
+        <label>Escola:
+            <select name="escola" onchange="this.form.submit()">
+                <option value="">Selecione</option>
+                {% for e in escolas %}
+                    <option value="{{ e.id }}" {% if e.id|stringformat:"s" == escola_id %}selected{% endif %}>
+                        {{ e.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Série:
+            <select name="serie" onchange="this.form.submit()">
+                <option value="">Selecione</option>
+                {% for s in series %}
+                    <option value="{{ s.id }}" {% if s.id|stringformat:"s" == serie_id %}selected{% endif %}>
+                        {{ s.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+    </form>
+</div>
+
+{% if resultados %}
+
+<div class="card">
+    <h3>{{ escola_selecionada.nome }} — {{ serie_selecionada.nome }}</h3>
+</div>
+
+<table>
+    <tr>
+        <th>Ano</th>
+        <th>Proficiência Média</th>
+    </tr>
+    {% for r in resultados %}
+    <tr>
+        <td>{{ r.ano }}</td>
+        <td>{{ r.media }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="grafico">
+    <canvas id="grafico"></canvas>
+</div>
+
+{% endif %}
+
+</div>
+
+<script>
+const dados = {
+    labels: [{% for r in resultados %}'{{ r.ano }}',{% endfor %}],
+    datasets: [{
+        label: 'Proficiência Média',
+        data: [{% for r in resultados %}{{ r.media }},{% endfor %}],
+        borderWidth: 2,
+        fill: false
+    }]
+};
+
+new Chart(document.getElementById('grafico'), {
+    type: 'line',
+    data: dados,
+    options: {
+        responsive: true,
+        scales: { y: { beginAtZero: false } }
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel por Localidade - SABE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: Arial; background:#f4f6f9; margin:20px; }
+        .container { max-width:1200px; margin:auto; }
+        .filtros, .card, .grafico { background:white; padding:15px; border-radius:8px; margin-bottom:15px; }
+        table { width:100%; border-collapse:collapse; }
+        th, td { padding:8px; border-bottom:1px solid #ddd; text-align:center; }
+        th { background:#1f2937; color:white; }
+        .voltar { font-weight:bold; text-decoration:none; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<a href="/dashboard/" class="voltar">⬅ Voltar</a>
+
+<h2>📍 Painel de Desempenho por Localidade</h2>
+
+<div class="filtros">
+    <form method="get">
+        <label>Ano:
+            <select name="ano" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                {% for a in anos %}
+                    <option value="{{ a }}" {% if a|stringformat:"s" == ano|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Série:
+            <select name="serie" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                {% for s in series %}
+                    <option value="{{ s.id }}" {% if s.id|stringformat:"s" == serie|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Disciplina:
+            <select name="disciplina" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                {% for d in disciplinas %}
+                    <option value="{{ d.id }}" {% if d.id|stringformat:"s" == disciplina|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <tr>
+            <th>Posição</th>
+            <th>Localidade</th>
+            <th>Proficiência Média</th>
+            <th>Escolas</th>
+            <th>Alunos</th>
+        </tr>
+
+        {% for l in localidades %}
+        <tr>
+            <td>{{ forloop.counter }}º</td>
+            <td>{{ l.escola__localidade__nome }}</td>
+            <td>{{ l.media|floatformat:2 }}</td>
+            <td>{{ l.escolas }}</td>
+            <td>{{ l.alunos }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="grafico">
+    <canvas id="grafico"></canvas>
+</div>
+
+</div>
+
+<script>
+const labels = [{% for l in localidades %}'{{ l.escola__localidade__nome }}',{% endfor %}];
+const medias = [{% for l in localidades %}{{ l.media|default:0 }},{% endfor %}];
+
+new Chart(document.getElementById('grafico'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Proficiência Média',
+            data: medias,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: { y: { beginAtZero: false } }
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>SABE | Juazeiro-BA</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+    --azul:#1e40af;
+    --azul-claro:#2563eb;
+    --cinza:#f1f5f9;
+    --texto:#0f172a;
+    --card:#ffffff;
+    --sombra:0 8px 20px rgba(0,0,0,.06);
+    --radius:14px;
+}
+
+/* ====== BASE ====== */
+body{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--cinza);
+    color: var(--texto);
+    margin:0;
+}
+
+/* ====== HEADER ====== */
+.dashboard-header{
+    background: linear-gradient(90deg, #1e3a8a, #2563eb);
+    color:#fff;
+    padding:25px 30px;
+    border-radius:0 0 18px 18px;
+    box-shadow:0 6px 20px rgba(0,0,0,.15);
+}
+
+.dashboard-header h1{
+    margin:0;
+    font-size:26px;
+    font-weight:600;
+}
+
+.dashboard-header span{
+    font-size:14px;
+    opacity:.9;
+}
+
+/* ====== CONTAINER ====== */
+.container{
+    padding:25px;
+}
+
+/* ====== FILTROS ====== */
+.filtros{
+    background:var(--card);
+    padding:18px;
+    border-radius:var(--radius);
+    box-shadow:var(--sombra);
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.filtros label{
+    font-size:13px;
+    font-weight:600;
+    display:flex;
+    flex-direction:column;
+}
+
+.filtros select{
+    margin-top:6px;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid #e5e7eb;
+    font-size:14px;
+}
+
+/* ====== LOADING ====== */
+#loading{
+    text-align:center;
+    padding:12px;
+    font-weight:600;
+    color:#2563eb;
+    display:none;
+}
+
+/* ====== CARDS ====== */
+.cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:25px;
+}
+
+.card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:20px;
+    box-shadow:var(--sombra);
+    text-align:center;
+    transition:.3s;
+}
+
+.card:hover{
+    transform:translateY(-4px);
+}
+
+.card h4{
+    margin:0;
+    font-size:13px;
+    color:#475569;
+}
+
+.card h2{
+    margin:8px 0 0;
+    font-size:28px;
+    color:var(--azul);
+}
+
+/* ====== GRAFICOS ====== */
+.graficos{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(420px,1fr));
+    gap:22px;
+}
+
+.grafico{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--sombra);
+}
+
+.grafico h3{
+    margin-bottom:12px;
+    font-size:16px;
+    color:#1e293b;
+}
+
+canvas{
+    max-height:380px;
+}
+
+/* ====== TABELA ====== */
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+}
+
+th{
+    background:#f1f5f9;
+    text-align:left;
+    padding:10px;
+}
+
+td{
+    padding:8px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+tr:hover{
+    background:#f8fafc;
+}
+
+/* ====== RESPONSIVO ====== */
+@media(max-width:600px){
+    .graficos{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+
+<div class="container">
+
+    <!-- FILTROS -->
+    <div class="filtros">
+        <form id="form-filtros" style="display:contents">
+            <label>Ano
+                <select name="ano" onchange="atualizarGraficos()">
+                    {% for ano in anos %}
+                        <option value="{{ ano }}" {% if ano == ano_selecionado %}selected{% endif %}>{{ ano }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Disciplina
+                <select name="disciplina" onchange="atualizarGraficos()">
+                    <option value="">Todas</option>
+                    {% for d in disciplinas %}
+                        <option value="{{ d.id }}">{{ d.nome }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Série
+                <select name="serie" onchange="atualizarGraficos()">
+                    <option value="">Todas</option>
+                    {% for s in series %}
+                        <option value="{{ s.id }}">{{ s.nome }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Localidade
+                <select name="localidade" onchange="atualizarGraficos()">
+                    <option value="">Todas</option>
+                    {% for l in localidades %}
+                        <option value="{{ l.id }}">{{ l.nome }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </form>
+    </div>
+
+    <div id="loading">🔄 Atualizando indicadores...</div>
+
+    <!-- CARDS -->
+    <div class="cards" id="cards-estatisticas"></div>
+
+    <!-- GRAFICOS -->
+    <div class="graficos">
+
+        <div class="grafico">
+            <h3>📈 Evolução da Proficiência</h3>
+            <canvas id="grafico-evolucao"></canvas>
+        </div>
+
+        <div class="grafico">
+            <h3>📊 Distribuição de Níveis</h3>
+            <canvas id="grafico-distribuicao"></canvas>
+        </div>
+
+        <div class="grafico">
+            <h3>🏆 Top Escolas</h3>
+            <div id="tabela-ranking"></div>
+        </div>
+
+        <div class="grafico">
+            <h3>📍 Proficiência por Localidade</h3>
+            <canvas id="grafico-localidades"></canvas>
+        </div>
+
+    </div>
+</div>
+
+<script>
+let graficoEvolucao, graficoDistribuicao, graficoLocalidades;
+
+window.onload = atualizarGraficos;
+
+function atualizarGraficos() {
+    document.getElementById('loading').style.display = 'block';
+
+    const params = new URLSearchParams(new FormData(document.getElementById('form-filtros')));
+
+    fetch('/dashboard/dados-graficos/?' + params)
+        .then(r => r.json())
+        .then(d => {
+            atualizarCards(d.municipio);
+            atualizarEvolucao(d.evolucao);
+            atualizarDistribuicao(d.distribuicao);
+            atualizarRanking(d.top_escolas);
+            atualizarLocalidades(d.localidades);
+        })
+        .finally(() => document.getElementById('loading').style.display = 'none');
+}
+
+function atualizarCards(d) {
+    document.getElementById('cards-estatisticas').innerHTML = `
+        <div class="card"><h4>Proficiência Média</h4><h2>${d.media_proficiencia.toFixed(1)}</h2></div>
+        <div class="card"><h4>Participação</h4><h2>${d.media_participacao.toFixed(1)}%</h2></div>
+        <div class="card"><h4>Escolas Avaliadas</h4><h2>${d.total_escolas}</h2></div>
+        <div class="card"><h4>Alunos Avaliados</h4><h2>${d.total_alunos.toLocaleString('pt-BR')}</h2></div>
+    `;
+}
+
+function atualizarEvolucao(dados) {
+    const ctx = document.getElementById('grafico-evolucao');
+    if (graficoEvolucao) graficoEvolucao.destroy();
+    graficoEvolucao = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dados.map(i => i.ano),
+            datasets: [{
+                label: 'Proficiência',
+                data: dados.map(i => i.proficiencia),
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37,99,235,0.15)',
+                tension: 0.3,
+                fill:true
+            }]
+        }
+    });
+}
+
+function atualizarDistribuicao(d) {
+    const ctx = document.getElementById('grafico-distribuicao');
+    if (graficoDistribuicao) graficoDistribuicao.destroy();
+    graficoDistribuicao = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Abaixo','Básico','Adequado','Avançado'],
+            datasets: [{ 
+                data: [d.abaixo_basico, d.basico, d.adequado, d.avancado]
+            }]
+        }
+    });
+}
+
+function atualizarRanking(escolas) {
+    let html = '<table><tr><th>#</th><th>Escola</th><th>Média</th><th>Localidade</th></tr>';
+    escolas.forEach((e,i)=>{
+        html+=`<tr>
+            <td>${i+1}</td>
+            <td>${e.escola__nome}</td>
+            <td>${e.media.toFixed(1)}</td>
+            <td>${e.escola__localidade__nome}</td>
+        </tr>`;
+    });
+    html+='</table>';
+    document.getElementById('tabela-ranking').innerHTML = html;
+}
+
+function atualizarLocalidades(localidades) {
+    if (!localidades.length) return;
+
+    const ctx = document.getElementById('grafico-localidades');
+    if (graficoLocalidades) graficoLocalidades.destroy();
+
+    graficoLocalidades = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: localidades.map(i=>i.nome),
+            datasets: [{
+                label:'Proficiência',
+                data: localidades.map(i=>i.media)
+            }]
+        },
+        options: {
+            indexAxis: 'y'
+        }
+    });
+}
+</script>
+
+</body>
+</html>
+{% endblock %}

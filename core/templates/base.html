@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SABE | Juazeiro-BA</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+    --azul:#1e40af;
+    --azul2:#2563eb;
+    --cinza:#f1f5f9;
+    --card:#ffffff;
+    --texto:#0f172a;
+    --radius:14px;
+    --sombra:0 10px 25px rgba(0,0,0,.08);
+}
+
+/* BASE */
+body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:var(--cinza);
+    color:var(--texto);
+}
+
+/* LAYOUT */
+.layout{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    min-height:100vh;
+}
+
+/* MENU */
+.sidebar{
+    background:linear-gradient(180deg,#1e3a8a,#1e40af);
+    color:#fff;
+    padding:22px 15px;
+}
+
+.sidebar h2{
+    text-align:center;
+    margin-bottom:25px;
+    font-size:20px;
+}
+
+.menu a{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    color:#fff;
+    text-decoration:none;
+    border-radius:10px;
+    margin-bottom:6px;
+    transition:.3s;
+    font-size:14px;
+}
+
+.menu a:hover,
+.menu a.active{
+    background:rgba(255,255,255,.15);
+}
+
+/* HEADER */
+.header{
+    background:#fff;
+    padding:14px 22px;
+    box-shadow:var(--sombra);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.header h3{
+    margin:0;
+    font-size:18px;
+}
+
+/* CONTEUDO */
+.main{
+    display:flex;
+    flex-direction:column;
+}
+
+.content{
+    padding:25px;
+}
+
+@media(max-width:900px){
+    .layout{
+        grid-template-columns:1fr;
+    }
+    .sidebar{
+        display:none;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
+        <h2>SABE</h2>
+
+        <nav class="menu">
+            <a href="/dashboard/" class="active"><i class="fa fa-chart-line"></i> Dashboard</a>
+            <a href="/dashboard/escolas/"><i class="fa fa-school"></i> Escolas</a>
+            <a href="/dashboard/series/"><i class="fa fa-layer-group"></i> Séries</a>
+            <a href="/dashboard/boletim_escola/"><i class="fa fa-book"></i> Boletim</a>
+            <a href="/dashboard/ranking/"><i class="fa fa-trophy"></i> Ranking</a>
+            <a href="/dashboard/relatorios/"><i class="fa fa-file-pdf"></i> Relatórios</a>
+        </nav>
+    </aside>
+
+    <!-- CONTEÚDO -->
+    <div class="main">
+
+        <div class="header">
+            <h3>Painel de Indicadores Educacionais</h3>
+            <div><i class="fa fa-user"></i> {{ request.user }}</div>
+        </div>
+
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+</div>
+
+</body>
+</html>

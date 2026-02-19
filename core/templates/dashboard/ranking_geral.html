@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Ranking Geral - SABE</title>
+
+    <style>
+        body { font-family: Arial; background:#f5f6fa; margin:20px; }
+        .container { max-width:1200px; margin:auto; }
+        .filtros, .card { background:white; padding:15px; border-radius:8px; margin-bottom:15px; }
+        table { width:100%; border-collapse:collapse; }
+        th, td { padding:10px; border-bottom:1px solid #ddd; text-align:center; }
+        th { background:#111827; color:white; }
+        .ouro { background:#fff3cd; }
+        .prata { background:#e5e7eb; }
+        .bronze { background:#fde68a; }
+        .voltar { font-weight:bold; text-decoration:none; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<a href="/dashboard/" class="voltar">⬅ Voltar</a>
+
+<h2>🏆 Ranking Geral da Rede</h2>
+
+<div class="filtros">
+    <form method="get">
+        <label>Ano:
+            <select name="ano" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                {% for a in anos %}
+                    <option value="{{ a }}" {% if a|stringformat:"s" == ano|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Série:
+            <select name="serie" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                {% for s in series %}
+                    <option value="{{ s.id }}" {% if s.id|stringformat:"s" == serie|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Disciplina:
+            <select name="disciplina" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                {% for d in disciplinas %}
+                    <option value="{{ d.id }}" {% if d.id|stringformat:"s" == disciplina|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </form>
+</div>
+
+<table>
+    <tr>
+        <th>Posição</th>
+        <th>Escola</th>
+        <th>Proficiência</th>
+        <th>Alunos</th>
+        <th>Localidade</th>
+    </tr>
+
+    {% for e in ranking %}
+    <tr class="{% if forloop.counter == 1 %}ouro{% elif forloop.counter == 2 %}prata{% elif forloop.counter == 3 %}bronze{% endif %}">
+        <td>{{ forloop.counter }}º</td>
+        <td>{{ e.escola__nome }}</td>
+        <td>{{ e.media|floatformat:2 }}</td>
+        <td>{{ e.alunos }}</td>
+        <td>{{ e.escola__localidade__nome }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+</body>
+</html>
+{% endblock %}

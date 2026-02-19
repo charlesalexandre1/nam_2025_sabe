@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Boletim Escolar</h2>
+
+<h4>{{ escola.nome }}</h4>
+<p><strong>Localidade:</strong> {{ escola.localidade }}</p>
+
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Ano</th>
+            <th>Série</th>
+            <th>Disciplina</th>
+            <th>Proficiência</th>
+            <th>% Avaliados</th>
+            <th>% Adeq + Avan</th>
+            <th>Meta</th>
+            <th>Situação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in boletim %}
+        <tr>
+            <td>{{ item.ano }}</td>
+            <td>{{ item.serie }}</td>
+            <td>{{ item.disciplina }}</td>
+            <td>{{ item.proficiencia }}</td>
+            <td>{{ item.participacao }}%</td>
+            <td>{{ item.adequado_avancado }}%</td>
+            <td>{{ item.meta|default:"—" }}</td>
+            <td>
+                {% if item.situacao == "Atingiu" %}
+                    <span style="color:green;">✔ Atingiu</span>
+                {% elif item.situacao == "Não atingiu" %}
+                    <span style="color:red;">✖ Não atingiu</span>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

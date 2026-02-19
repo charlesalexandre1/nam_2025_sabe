@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Comparação de Desempenho - SABE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f9fafb; }
+        .container { max-width: 1200px; margin: auto; }
+        .filtros, .card, .grafico { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 15px; }
+        .card { text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+        .positivo { color: green; }
+        .negativo { color: red; }
+        .voltar { display:inline-block; margin-bottom:15px; text-decoration:none; font-weight:bold; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<a href="/dashboard/" class="voltar">⬅ Voltar ao Dashboard</a>
+
+<h2>📊 Comparação de Desempenho entre Anos</h2>
+
+<div class="filtros">
+    <form method="get">
+        <label>Ano 1:
+            <select name="ano1" onchange="this.form.submit()">
+                {% for ano in anos_disponiveis %}
+                    <option value="{{ ano }}" {% if ano|stringformat:"s" == ano1|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Ano 2:
+            <select name="ano2" onchange="this.form.submit()">
+                {% for ano in anos_disponiveis %}
+                    <option value="{{ ano }}" {% if ano|stringformat:"s" == ano2|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </form>
+</div>
+
+<div class="cards">
+    <div class="card">
+        <h4>Proficiência Média {{ ano1 }}</h4>
+        <h2>{{ dados_ano1.media|default:0|floatformat:2 }}</h2>
+    </div>
+
+    <div class="card">
+        <h4>Proficiência Média {{ ano2 }}</h4>
+        <h2>{{ dados_ano2.media|default:0|floatformat:2 }}</h2>
+    </div>
+
+    <div class="card">
+        <h4>Variação Proficiência</h4>
+        <h2 class="{% if variacao.media >= 0 %}positivo{% else %}negativo{% endif %}">
+            {{ variacao.media }}%
+        </h2>
+    </div>
+
+    <div class="card">
+        <h4>Alunos {{ ano1 }}</h4>
+        <h2>{{ dados_ano1.alunos|default:0 }}</h2>
+    </div>
+
+    <div class="card">
+        <h4>Alunos {{ ano2 }}</h4>
+        <h2>{{ dados_ano2.alunos|default:0 }}</h2>
+    </div>
+
+    <div class="card">
+        <h4>Variação Alunos</h4>
+        <h2 class="{% if variacao.alunos >= 0 %}positivo{% else %}negativo{% endif %}">
+            {{ variacao.alunos }}%
+        </h2>
+    </div>
+</div>
+
+<div class="grafico">
+    <canvas id="grafico-comparacao"></canvas>
+</div>
+
+</div>
+
+<script>
+const ctx = document.getElementById('grafico-comparacao');
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['{{ ano1 }}', '{{ ano2 }}'],
+        datasets: [{
+            label: 'Proficiência Média',
+            data: [
+                {{ dados_ano1.media|default:0 }},
+                {{ dados_ano2.media|default:0 }}
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: { beginAtZero: false }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .box {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    th {
+        background: #1e3a8a;
+        color: white;
+    }
+
+    .btn {
+        background: #2563eb;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+    }
+
+    .btn:hover {
+        background: #1e40af;
+    }
+</style>
+
+<div class="box">
+    <h3>Selecione a Escola para Gerar o Boletim</h3>
+
+    <table>
+        <tr>
+            <th>Escola</th>
+            <th>Localidade</th>
+            <th>Ação</th>
+        </tr>
+
+        {% for escola in escolas %}
+        <tr>
+            <td>{{ escola.nome }}</td>
+            <td>{{ escola.localidade }}</td>
+            <td>
+                <a class="btn" href="{% url 'boletim_escola_html' escola.id %}">
+                    Gerar Boletim
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock %}

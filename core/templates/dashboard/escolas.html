@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>🏫 Desempenho das Escolas</h2>
+
+<div class="filtros">
+    <select id="ano" onchange="carregar()">
+        {% for a in anos %}
+        <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+    </select>
+
+    <select id="serie" onchange="carregar()">
+        <option value="">Todas Séries</option>
+        {% for s in series %}
+        <option value="{{ s.id }}">{{ s.nome }}</option>
+        {% endfor %}
+    </select>
+
+    <select id="disciplina" onchange="carregar()">
+        <option value="">Todas Disciplinas</option>
+        {% for d in disciplinas %}
+        <option value="{{ d.id }}">{{ d.nome }}</option>
+        {% endfor %}
+    </select>
+
+    <select id="localidade" onchange="carregar()">
+        <option value="">Todas Localidades</option>
+        {% for l in localidades %}
+        <option value="{{ l.id }}">{{ l.nome }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="grafico">
+    <h3>🏆 Ranking Geral</h3>
+    <div id="tabela"></div>
+</div>
+
+<script>
+function carregar(){
+    const params = new URLSearchParams({
+        ano:document.getElementById('ano').value,
+        serie:document.getElementById('serie').value,
+        disciplina:document.getElementById('disciplina').value,
+        localidade:document.getElementById('localidade').value
+    });
+
+    fetch('/dashboard/api/escolas/?'+params)
+    .then(r=>r.json())
+    .then(d=>{
+        let html='<table><tr><th>#</th><th>Escola</th><th>Localidade</th><th>Média</th><th>Alunos</th></tr>';
+        d.ranking.forEach((e,i)=>{
+            html+=`<tr>
+                <td>${i+1}</td>
+                <td>${e.escola__nome}</td>
+                <td>${e.escola__localidade__nome}</td>
+                <td>${e.media.toFixed(1)}</td>
+                <td>${e.alunos}</td>
+            </tr>`;
+        });
+        html+='</table>';
+        document.getElementById('tabela').innerHTML=html;
+    });
+}
+
+window.onload = carregar;
+</script>
+
+{% endblock %}

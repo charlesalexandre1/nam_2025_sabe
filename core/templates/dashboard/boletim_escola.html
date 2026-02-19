@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* Layout da página */
+    .boletim-container {
+        max-width: 100%;
+        margin: 0 auto;
+        background: #fff;
+        padding: 10px;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .boletim-header {
+        text-align: center;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #000;
+        padding-bottom: 5px;
+    }
+
+    .boletim-header h2 {
+        margin: 0 0 2px 0;
+        font-size: 18px;
+        line-height: 1.1;
+        color: #000;
+    }
+
+    .boletim-header p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.1;
+        color: #000;
+    }
+
+    .info-escola {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 5px;
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+
+    .info-box {
+        background: #eee;
+        padding: 4px 6px;
+        border-radius: 3px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        page-break-inside: auto;
+        margin-bottom: 12px;
+    }
+
+    th, td {
+        border: 1px solid #000;
+        padding: 3px 4px;
+        text-align: center;
+        line-height: 1.0;
+        height: auto;
+        white-space: nowrap;
+    }
+
+    th {
+        background: #c0bcbc;
+        color: #692020;
+    }
+
+    h4 {
+        margin: 8px 0 4px 0;
+        font-size: 13px;
+        font-weight: bold;
+        text-align: left;
+    }
+
+    /* Ajustes para impressão */
+    @media print {
+        body {
+            margin: 0;
+            font-size: 12px;
+        }
+        .boletim-container {
+            padding: 5px;
+        }
+        .table-wrapper {
+            overflow: visible;
+        }
+        table, th, td {
+            border: 1px solid #939191;
+        }
+    }
+</style>
+
+<div class="boletim-container">
+
+    <!-- CABEÇALHO -->
+    <div class="boletim-header">
+        <h2>Boletim de Desempenho - SABE</h2>
+        <p>Secretaria Municipal de Educação - Juazeiro</p>
+        <p>Superintendência Pedagógica</p>
+        <p>Núcleo de Avaliação e Monitoramento - NAM</p>
+    </div>
+
+    <!-- DADOS DA ESCOLA -->
+    <div class="info-escola">
+        <div class="info-box"><b>Escola:</b> {{ escola.nome }}</div>
+        <div class="info-box"><b>INEP:</b> {{ escola.inep }}</div>
+        <div class="info-box"><b>Localidade:</b> {{ escola.localidade }}</div>
+        <div class="info-box"><b>Gestor:</b> {{ escola.gestor }}</div>
+    </div>
+
+    <!-- TABELA 1 – PROFICIÊNCIA -->
+    <h4>Proficiência Média e Padrão de Desempenho</h4>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">Série</th>
+                    <th rowspan="2">Disciplina</th>
+                    {% for ano in anos %}
+                        <th colspan="2">{{ ano }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for ano in anos %}
+                        <th>Prof.</th>
+                        <th>Padrão</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in boletim %}
+                <tr>
+                    <td>{{ linha.serie }}</td>
+                    <td>{{ linha.disciplina }}</td>
+                    {% for a in linha.anos %}
+                        <td>{{ a.proficiencia|default:"-"|floatformat:1 }}</td>
+                        <td>{{ a.padrao|default:"-" }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ colspan }}">Nenhum dado encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TABELA 2 – DISTRIBUIÇÃO -->
+    <h4>Distribuição Percentual por Nível de Aprendizagem</h4>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">Série</th>
+                    <th rowspan="2">Disciplina</th>
+                    {% for ano in anos %}
+                        <th colspan="4">{{ ano }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for ano in anos %}
+                        <th>AB (%)</th>
+                        <th>B (%)</th>
+                        <th>A (%)</th>
+                        <th>AV (%)</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in distribuicao %}
+                <tr>
+                    <td>{{ linha.serie }}</td>
+                    <td>{{ linha.disciplina }}</td>
+
+                    {% for a in linha.anos %}
+                        <td>{{ a.abaixo_basico|floatformat:1 }}</td>
+                        <td>{{ a.basico|floatformat:1 }}</td>
+                        <td>{{ a.adequado|floatformat:1 }}</td>
+                        <td>{{ a.avancado|floatformat:1 }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ colspan_dist }}">Nenhum dado encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,55 @@
+
+<h3>Relatórios Automáticos</h3>
+
+<form method="get" action="{% url 'relatorio_pdf' %}" target="_blank" class="row g-3">
+
+  <div class="col-md-3">
+    <label>Localidade</label>
+    <select name="localidade" class="form-control">
+      <option value="">Todas</option>
+      {% for l in localidades %}
+      <option value="{{ l.id }}">{{ l.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <label>Escola</label>
+    <select name="escola" class="form-control">
+      <option value="">Todas</option>
+      {% for e in escolas %}
+      <option value="{{ e.id }}">{{ e.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-2">
+    <label>Série</label>
+    <select name="serie" class="form-control">
+      <option value="">Todas</option>
+      <option value="1">1º Ano</option>
+      <option value="2">2º Ano</option>
+      <option value="3">3º Ano</option>
+      <option value="4">4º Ano</option>
+      <option value="5">5º Ano</option>
+    </select>
+  </div>
+
+  <div class="col-md-2">
+    <label>Ano Inicial</label>
+    <input type="number" name="ano_inicio" class="form-control" required>
+  </div>
+
+  <div class="col-md-2">
+    <label>Ano Final</label>
+    <input type="number" name="ano_fim" class="form-control" required>
+  </div>
+
+  <div class="col-md-12">
+    <button class="btn btn-danger mt-3">
+      📄 Gerar Relatório em PDF
+    </button>
+  </div>
+
+</form>
+
