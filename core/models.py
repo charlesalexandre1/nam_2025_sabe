@@ -283,3 +283,138 @@ class EvolucaoEscola(models.Model):
     
     def __str__(self):
         return f"Evolução {self.escola.nome} ({self.ano_inicial}-{self.ano_final})"
+
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+class Esfera(models.Model):
+    nome = models.CharField('Nome da Esfera', max_length=100)
+    
+    def __str__(self):
+        return self.nome
+    
+    class Meta:
+        verbose_name = 'Esfera'
+        verbose_name_plural = 'Esferas'
+
+
+class DesempenhoEsfera(models.Model):  # Nome em CamelCase
+    esfera = models.ForeignKey(
+        Esfera, 
+        on_delete=models.CASCADE, 
+        related_name='desempenhos',
+        verbose_name='Esfera'
+    )
+    ano = models.PositiveIntegerField('Ano da Prova')
+    disciplina = models.ForeignKey(
+        Disciplina,
+        on_delete=models.CASCADE,
+        related_name='desempenhos_esfera',  # Opcional
+        verbose_name='Disciplina'
+    )
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        related_name='desempenhos_esfera',  # Opcional
+        verbose_name='Série/Ano'
+    )
+    
+    alunos_previstos = models.PositiveIntegerField('Alunos Previstos')
+    alunos_avaliados = models.PositiveIntegerField('Alunos Avaliados')
+    percentual_avaliados = models.DecimalField(
+        'Avaliados (%)', 
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='Percentual de alunos avaliados (calculado automaticamente)'
+    )
+    
+    proficiencia_media = models.DecimalField(
+        'Proficiência Média', 
+        max_digits=6, 
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text='Média de proficiência da esfera'
+    )
+    
+    abaixo_basico = models.DecimalField(
+        'Abaixo do Básico (%)', 
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=0
+    )
+    basico = models.DecimalField(
+        'Básico (%)', 
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=0
+    )
+    adequado = models.DecimalField(
+        'Adequado (%)', 
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=0
+    )
+    avancado = models.DecimalField(
+        'Avançado (%)', 
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=0
+    )
+    
+    # Campos opcionais
+    meta_estabelecida = models.DecimalField(
+        'Meta Estabelecida',
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    variacao_ano_anterior = models.DecimalField(
+        'Variação vs Ano Anterior',
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    posicao_municipio = models.PositiveIntegerField(
+        'Posição no Município',
+        null=True,
+        blank=True
+    )
+    observacoes = models.TextField('Observações', blank=True, null=True)
+    
+    data_atualizacao = models.DateTimeField('Data de Atualização', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Desempenho da Esfera'
+        verbose_name_plural = 'Desempenhos das Esferas'
+        unique_together = ['esfera', 'ano', 'disciplina', 'serie']
+        ordering = ['-ano', 'esfera__nome', 'disciplina__nome']
+        indexes = [
+            models.Index(fields=['esfera', 'ano', 'disciplina', 'serie']),
+        ]
+    
+    def __str__(self):
+        return f"{self.esfera.nome} - {self.ano} - {self.disciplina} - {self.serie}"
+    
+    def save(self, *args, **kwargs):
+        # Calcula percentual_avaliados automaticamente
+        if self.alunos_previstos:
+            self.percentual_avaliados = (self.alunos_avaliados / self.alunos_previstos) * 100
+        else:
+            self.percentual_avaliados = 0
+        
+        # Ajusta soma dos níveis para 100% (opcional, igual ao DesempenhoEscola)
+        total = self.abaixo_basico + self.basico + self.adequado + self.avancado
+        if total != 100 and total > 0:
+            fator = 100 / total
+            self.abaixo_basico = round(self.abaixo_basico * fator, 2)
+            self.basico = round(self.basico * fator, 2)
+            self.adequado = round(self.adequado * fator, 2)
+            self.avancado = round(self.avancado * fator, 2)
+        
+        super().save(*args, **kwargs)

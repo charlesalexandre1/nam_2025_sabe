@@ -1119,3 +1119,104 @@ def relatorio_escolas_participantes(request):
     return render(request, 'dashboard/relatorio_escolas_participantes.html', {
         'dados': dados
     })
+
+
+
+#Panel esfera ( estadual regional municipal) - ranking por localidade
+
+from django.shortcuts import render
+from django.db.models import Avg, Sum
+from .models import Esfera, Disciplina, Serie, DesempenhoEsfera
+
+def painel_esferas(request):
+    # Filtros recebidos via GET (opcionais)
+    disciplina_id = request.GET.get('disciplina')
+    serie_id = request.GET.get('serie')
+
+    # Se não informado, usa o primeiro disponível (ou None)
+    disciplina = None
+    serie = None
+    if disciplina_id:
+        try:
+            disciplina = Disciplina.objects.get(pk=disciplina_id)
+        except Disciplina.DoesNotExist:
+            pass
+    if serie_id:
+        try:
+            serie = Serie.objects.get(pk=serie_id)
+        except Serie.DoesNotExist:
+            pass
+
+    # Se ainda não definidos, pega o primeiro registro (para exibir algo)
+    if not disciplina:
+        disciplina = Disciplina.objects.first()
+    if not serie:
+        serie = Serie.objects.first()
+
+    # Busca todos os desempenhos para a disciplina/série selecionada
+    desempenhos = DesempenhoEsfera.objects.filter(
+        disciplina=disciplina,
+        serie=serie
+    ).select_related('esfera').order_by('ano', 'esfera__nome')
+
+    # Organiza dados para tabela comparativa
+    anos = sorted(set(d.ano for d in desempenhos))
+    esferas = Esfera.objects.all().order_by('nome')
+
+    # Matriz: [esfera][ano] = desempenho ou None
+    matriz = {}
+    for esfera in esferas:
+        matriz[esfera.id] = {ano: None for ano in anos}
+
+    for d in desempenhos:
+        matriz[d.esfera_id][d.ano] = d
+
+    # Estatísticas gerais
+    total_esferas = Esfera.objects.count()
+    total_desempenhos = DesempenhoEsfera.objects.count()
+    anos_disponiveis = DesempenhoEsfera.objects.values_list('ano', flat=True).distinct().order_by('-ano')
+    ultimo_ano = anos_disponiveis.first() if anos_disponiveis else None
+
+    # Ranking das esferas no último ano (para a disciplina/série selecionada)
+    # Ranking das esferas no último ano (para a disciplina/série selecionada)
+    ranking = []
+    if ultimo_ano:
+        desempenhos_ranking = DesempenhoEsfera.objects.filter(
+        ano=ultimo_ano,
+        disciplina=disciplina,
+        serie=serie
+    ).select_related('esfera').order_by('-proficiencia_media')[:10]
+
+    for item in desempenhos_ranking:
+        # Calcula os somatórios com precisão decimal
+        item.soma_ab = item.abaixo_basico + item.basico
+        item.soma_aa = item.adequado + item.avancado
+        ranking.append(item)
+    # Evolução por ano (média de proficiência, total de alunos avaliados)
+    evolucao = DesempenhoEsfera.objects.filter(
+        disciplina=disciplina,
+        serie=serie
+    ).values('ano').annotate(
+        media_proficiencia=Avg('proficiencia_media'),
+        total_avaliados=Sum('alunos_avaliados')
+    ).order_by('ano')
+
+    # Listas para os filtros
+    todas_disciplinas = Disciplina.objects.all()
+    todas_series = Serie.objects.all()
+
+    context = {
+        'disciplina': disciplina,
+        'serie': serie,
+        'todas_disciplinas': todas_disciplinas,
+        'todas_series': todas_series,
+        'anos': anos,
+        'esferas': esferas,
+        'matriz': matriz,
+        'total_esferas': total_esferas,
+        'total_desempenhos': total_desempenhos,
+        'ultimo_ano': ultimo_ano,
+        'ranking': ranking,
+        'evolucao': evolucao,
+    }
+    return render(request, 'dashboard/painel_esferas.html', context)
