@@ -8,7 +8,6 @@
 <style>
 /* Impressão */
     @media print {
-
     /* Remove cores de fundo e sombras desnecessárias */
     * {
         -webkit-print-color-adjust: exact;
@@ -24,13 +23,18 @@
         padding: 0;
     }
 
-    /* Transforma o layout em bloco simples */
-    .layout {
-        display: block !important;
+    /* Oculta elementos desnecessários na impressão */
+    .sidebar,
+    .header,
+    .filter-form,           /* <-- Oculta o formulário de filtros */
+    .filter-form button,     /* opcional, mas já está incluso acima */
+    .no-print {              /* classe genérica para outros elementos que queira ocultar */
+        display: none !important;
     }
 
-    .sidebar {
-        display: none !important;
+    /* Ajustes no layout principal */
+    .layout {
+        display: block !important;
     }
 
     .main {
@@ -39,32 +43,29 @@
         padding: 0 !important;
     }
 
-    .header {
-        display: none !important; /* Oculta o cabeçalho com o nome do usuário */
-    }
-
-    .boletim-header p {
-        margin: 0;
-        font-size:8px;
-        line-height: 1.1;
-        color: #000;
-    }
-
     .content {
         padding: 0 !important;
         margin: 0 !important;
         width: 100% !important;
     }
+
+    /* Estilo para cabeçalho do boletim, se houver */
+    .boletim-header p {
+        margin: 0;
+        font-size: 8px;
+        line-height: 1.1;
+        color: #000;
     }
+}
 </style>
   
 <div class="container">
     <h2>Comparativo de Desempenho por Esferas - SABE</h2>
-        <p>Secretaria Municipal de Educação - Juazeiro</p>
-        <p>Superintendência Pedagógica</p>
+        <p>Secretaria Municipal de Educação - Juazeiro
+        <p>Superintendência Pedagógica
         <p>Núcleo de Avaliação e Monitoramento - NAM</p>
-    <!-- Filtros -->
-     
+    
+        <!-- Filtros -->
 <div class="card">
         <form method="get" class="filter-form">
             <div>
@@ -194,11 +195,11 @@
     .stats { display: flex; gap: 20px; margin-bottom: 20px; }
     .stat { flex: 1; text-align: center; }
     .stat p { font-size: 2em; font-weight: bold; margin: 10px 0; color: #007bff; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { padding: 10px; border: 1px solid #dee2e6; text-align: left; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 7px; border: 1px solid #dee2e6; text-align: left; }
     th { background: #e9ecef; font-weight: 600; }
     .filter-form { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
-    .filter-form select { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; min-width: 200px; }
+    .filter-form select { padding: 8px; border: 1px solid #ced4da; border-radius: 6px; min-width: 200px; }
     .filter-form button { background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
     .filter-form button:hover { background: #0056b3; }
     .text-center { text-align: center; }
