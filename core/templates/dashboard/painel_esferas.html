@@ -160,28 +160,7 @@
     {% endif %}
 
     <!-- Evolução anual (médias gerais) -->
-    <div class="card">
-        <h3>📅 Evolução Anual (Média Geral)</h3>
-        <table>
-            <tr>
-                <th>Ano</th>
-                <th>Proficiência Média</th>
-                <th>Total de Alunos Avaliados</th>
-            </tr>
-            {% for item in evolucao %}
-            <tr>
-                <td>{{ item.ano }}</td>
-                <td>{{ item.media_proficiencia|floatformat:1 }}</td>
-                <td>{{ item.total_avaliados }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3" class="text-center text-muted">Nenhum dado encontrado.</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-
+    
     <!-- Rodapé explicativo -->
     <div class="card" style="background: #e9ecef;">
         <p class="text-muted">* Os valores representam a proficiência média por esfera. Use os filtros para alterar disciplina e série.</p>
