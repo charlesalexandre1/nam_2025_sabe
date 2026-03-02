@@ -418,3 +418,215 @@ class DesempenhoEsfera(models.Model):  # Nome em CamelCase
             self.avancado = round(self.avancado * fator, 2)
         
         super().save(*args, **kwargs)
+
+        #tabela habilidade criação
+
+        from django.core.validators import MinValueValidator, MaxValueValidator
+
+class Habilidade(models.Model):
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        verbose_name='Série/Ano'
+    )
+    disciplina = models.ForeignKey(
+        Disciplina,
+        on_delete=models.CASCADE,
+        verbose_name='Disciplina'
+    )
+    cd_habilidade = models.CharField(
+        'Código da Habilidade',
+        max_length=20,
+        help_text='Código identificador da habilidade (ex: EF05LP01)'
+    )
+    dc_habilidade = models.TextField(
+        'Descrição da Habilidade',
+        help_text='Descrição completa da habilidade'
+    )
+
+    class Meta:
+        verbose_name = 'Habilidade'
+        verbose_name_plural = 'Habilidades'
+        unique_together = ['serie', 'disciplina', 'cd_habilidade']
+        ordering = ['disciplina', 'serie', 'cd_habilidade']
+
+    def __str__(self):
+        return f"{self.cd_habilidade} - {self.dc_habilidade[:50]}"
+
+
+class ResultadoHabilidade(models.Model):
+    ano = models.IntegerField('Ano')
+    esfera = models.ForeignKey(
+        Esfera,
+        on_delete=models.CASCADE,
+        verbose_name='Esfera'
+    )
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        verbose_name='Série/Ano'
+    )
+    disciplina = models.ForeignKey(
+        Disciplina,
+        on_delete=models.CASCADE,
+        verbose_name='Disciplina'
+    )
+    cd_habilidade = models.CharField(
+        'Código da Habilidade',
+        max_length=20
+    )
+    tx_acerto = models.DecimalField(
+        'Taxa de Acerto (%)',
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='Percentual de acerto para esta habilidade'
+    )
+
+    class Meta:
+        verbose_name = 'Resultado de Habilidade'
+        verbose_name_plural = 'Resultados de Habilidades'
+        unique_together = ['ano', 'esfera', 'serie', 'disciplina', 'cd_habilidade']
+        indexes = [
+            models.Index(fields=['ano', 'esfera', 'serie', 'disciplina']),
+        ]
+        ordering = ['-ano', 'esfera', 'disciplina', 'serie', 'cd_habilidade']
+
+    def __str__(self):
+        return f"{self.ano} - {self.esfera} - {self.disciplina} - {self.serie} - {self.cd_habilidade}"
+    
+    from django.core.validators import MinValueValidator, MaxValueValidator
+
+class Habilidade1(models.Model):
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        verbose_name='Série/Ano'
+    )
+    disciplina = models.ForeignKey(
+        Disciplina,
+        on_delete=models.CASCADE,
+        verbose_name='Disciplina'
+    )
+    cd_habilidade = models.CharField(
+        'Código da Habilidade',
+        max_length=20,
+        help_text='Código identificador da habilidade (ex: EF05LP01)'
+    )
+    dc_habilidade = models.TextField(
+        'Descrição da Habilidade',
+        help_text='Descrição completa da habilidade'
+    )
+
+    class Meta:
+        verbose_name = 'Habilidade'
+        verbose_name_plural = 'Habilidades'
+        unique_together = ['serie', 'disciplina', 'cd_habilidade']
+        ordering = ['disciplina', 'serie', 'cd_habilidade']
+
+    def __str__(self):
+        return f"{self.cd_habilidade} - {self.dc_habilidade[:50]}"
+
+
+class ResultadoHabilidade1(models.Model):
+    ano = models.IntegerField('Ano')
+    esfera = models.ForeignKey(
+        Esfera,
+        on_delete=models.CASCADE,
+        verbose_name='Esfera'
+    )
+    habilidade = models.ForeignKey(
+        Habilidade1,
+        on_delete=models.CASCADE,
+        verbose_name='Habilidade',
+        related_name='resultados'  # Opcional, para acessar os resultados de uma habilidade
+    )
+    tx_acerto = models.DecimalField(
+        'Taxa de Acerto (%)',
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='Percentual de acerto para esta habilidade'
+    )
+
+    class Meta:
+        verbose_name = 'Resultado de Habilidade'
+        verbose_name_plural = 'Resultados de Habilidades'
+        unique_together = ['ano', 'esfera', 'habilidade']  # Garante unicidade por ano/esfera/habilidade
+        indexes = [
+            models.Index(fields=['ano', 'esfera', 'habilidade']),
+        ]
+        ordering = ['-ano', 'esfera', 'habilidade']
+
+    def __str__(self):
+        return f"{self.ano} - {self.esfera} - {self.habilidade.cd_habilidade}"
+    
+
+    #novas tentativas para tabela habilidade criação 02_03_2026
+
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+class Hab(models.Model):
+    serie = models.ForeignKey(
+        'Serie',  # ou import Serie diretamente
+        on_delete=models.CASCADE,
+        verbose_name='Série/Ano'
+    )
+    disciplina = models.ForeignKey(
+        'Disciplina',  # ou import Disciplina diretamente
+        on_delete=models.CASCADE,
+        verbose_name='Disciplina'
+    )
+    cd_hab = models.CharField(
+        'Código da Habilidade',
+        max_length=20,
+        help_text='Código identificador da habilidade (ex: EF05LP01)'
+    )
+    dc_hab = models.TextField(
+        'Descrição da Habilidade',
+        help_text='Descrição completa da habilidade'
+    )
+
+    class Meta:
+        verbose_name = 'Habilidade'
+        verbose_name_plural = 'Habilidades'
+        unique_together = ['serie', 'disciplina', 'cd_hab']
+        ordering = ['disciplina', 'serie', 'cd_hab']
+
+    def __str__(self):
+        return f"{self.cd_hab} - {self.dc_hab[:50]}"
+
+
+class ResultHab(models.Model):
+    ano = models.IntegerField('Ano')
+    esfera = models.ForeignKey(
+        'Esfera',  # ou import Esfera diretamente
+        on_delete=models.CASCADE,
+        verbose_name='Esfera'
+    )
+    hab = models.ForeignKey(
+        Hab,
+        on_delete=models.CASCADE,
+        verbose_name='Habilidade',
+        related_name='resultados_hab'  # Opcional: para acessar resultados de uma habilidade
+    )
+    tx_acerto = models.DecimalField(
+        'Taxa de Acerto (%)',
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='Percentual de acerto para esta habilidade'
+    )
+
+    class Meta:
+        verbose_name = 'Resultado de Habilidade'
+        verbose_name_plural = 'Resultados de Habilidades'
+        unique_together = ['ano', 'esfera', 'hab']  # Garante unicidade por ano/esfera/habilidade
+        indexes = [
+            models.Index(fields=['ano', 'esfera', 'hab']),
+        ]
+        ordering = ['-ano', 'esfera', 'hab']
+
+    def __str__(self):
+        return f"{self.ano} - {self.esfera} - {self.hab.cd_hab}"
