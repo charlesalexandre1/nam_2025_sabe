@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Avg, Sum, Count
 from django.http import JsonResponse, HttpResponse
+from matplotlib.style import context
+from urllib3 import request
 from .models import *
 
 
@@ -1220,3 +1222,139 @@ def painel_esferas(request):
         'evolucao': evolucao,
     }
     return render(request, 'dashboard/painel_esferas.html', context)
+
+
+    # analise das habilidades por esfera - 04_03_2026
+
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Avg
+from .models import ResultHab, Hab, Esfera, Serie, Disciplina
+
+from django.shortcuts import render, get_object_or_404
+from .models import ResultHab, Hab, Esfera
+from django.db.models import Prefetch
+def comparativo_habilidades(request):
+    # Filtros
+    esfera_id = request.GET.get('esfera')
+    serie_id = request.GET.get('serie')
+    disciplina_id = request.GET.get('disciplina')
+    
+    # Buscar esfera selecionada (se houver)
+    esfera = None
+    if esfera_id:
+        esfera = get_object_or_404(Esfera, id=esfera_id)
+    
+    # Base queryset para resultados
+    resultados_base = ResultHab.objects.all()
+    if esfera:
+        resultados_base = resultados_base.filter(esfera=esfera)
+    
+    # Lista de anos disponíveis (baseada nos filtros aplicados)
+    anos = []
+    if resultados_base.exists():
+        anos = (
+            resultados_base
+            .values_list('ano', flat=True)
+            .distinct()
+            .order_by('ano')
+        )
+    
+    # Base queryset para habilidades
+    habilidades_base = Hab.objects.all()
+    
+    # Aplicar filtros de série e disciplina se fornecidos
+    if serie_id:
+        habilidades_base = habilidades_base.filter(serie_id=serie_id)
+    if disciplina_id:
+        habilidades_base = habilidades_base.filter(disciplina_id=disciplina_id)
+    
+    # Filtrar habilidades que têm resultados na esfera selecionada (se houver esfera)
+    if esfera:
+        habilidades_base = habilidades_base.filter(resultados_hab__esfera=esfera)
+    
+    # Habilidades finais
+    habilidades = (
+        habilidades_base
+        .select_related('serie', 'disciplina')
+        .distinct()
+        .order_by('serie__nome', 'disciplina__nome', 'cd_hab')
+    )
+    
+    # Listas para os selects do filtro
+    esferas = Esfera.objects.all().order_by('nome')
+    
+    # Séries disponíveis (baseado na esfera selecionada)
+    series = Serie.objects.all()
+    if esfera:
+        series = series.filter(
+            hab__resultados_hab__esfera=esfera
+        ).distinct()
+    series = series.order_by('nome')
+    
+    # Disciplinas disponíveis (baseado na esfera e série selecionadas)
+    disciplinas = Disciplina.objects.all()
+    if esfera:
+        disciplinas = disciplinas.filter(
+            hab__resultados_hab__esfera=esfera
+        )
+    if serie_id:
+        disciplinas = disciplinas.filter(
+            hab__serie_id=serie_id
+        )
+    disciplinas = disciplinas.distinct().order_by('nome')
+    
+    # Construir tabela apenas se houver esfera selecionada
+    tabela = []
+    dados_grafico = []
+    
+    if esfera and anos:
+        for hab in habilidades:
+            linha = {
+                'serie': hab.serie.nome,
+                'disciplina': hab.disciplina.nome,
+                'codigo': hab.cd_hab,
+                'descricao': hab.dc_hab,
+                'anos': []
+            }
+            
+            for ano in anos:
+                resultado = ResultHab.objects.filter(
+                    esfera=esfera,
+                    hab=hab,
+                    ano=ano
+                ).first()
+                
+                tx_acerto = float(resultado.tx_acerto) if resultado and resultado.tx_acerto is not None else None
+                
+                linha['anos'].append({
+                    'ano': ano,
+                    'tx_acerto': tx_acerto
+                })
+            
+            tabela.append(linha)
+            
+            # Dados para gráfico
+            linha_grafico = {
+                'codigo': hab.cd_hab,
+                'disciplina': hab.disciplina.nome,
+                'serie': hab.serie.nome,
+                'anos': linha['anos']
+            }
+            dados_grafico.append(linha_grafico)
+    
+    # Converter anos para lista
+    anos_list = list(anos)
+    
+    context = {
+        'esferas': esferas,
+        'series': series,
+        'disciplinas': disciplinas,
+        'esfera_selecionada': esfera,
+        'serie_selecionada': int(serie_id) if serie_id else None,
+        'disciplina_selecionada': int(disciplina_id) if disciplina_id else None,
+        'anos': anos_list,
+        'tabela': tabela,
+        'dados_grafico': dados_grafico
+    }
+    
+    return render(request, 'dashboard/comparativo_habilidades.html', context)

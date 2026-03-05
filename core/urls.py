@@ -45,7 +45,9 @@ urlpatterns = [
     path('dashboard/boletim_escola/', views.selecionar_escola_boletim, name='selecionar_escola_boletim'),
     path('escolas-participantes/', views.relatorio_escolas_participantes, name='relatorio_escolas_participantes'),
     path('dashboard/painel-esferas/', views.painel_esferas, name='painel_esferas'),
-]
+    path('dashboard/comparativo-habilidades/', views.comparativo_habilidades, name='comparativo_habilidades'),
+    
+    ]
 
 
 
