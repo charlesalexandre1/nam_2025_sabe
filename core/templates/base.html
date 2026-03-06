@@ -116,7 +116,7 @@ body{
             <a href="/escolas-participantes/"><i class="fa fa-school"></i> Escolas</a>
             <a href="/dashboard/painel-esferas/"><i class="fa fa-layer-group"></i> Esferas</a>
             <a href="/dashboard/boletim_escola/"><i class="fa fa-book"></i> Boletim</a>
-            <a href="/dashboard/ranking/"><i class="fa fa-trophy"></i> Ranking</a>
+            <a href="/dashboard/desempenho/"><i class="fa fa-trophy"></i> Desempenho</a>
             <a href="/dashboard/comparativo-habilidades/"><i class="fa fa-file-pdf"></i> Esferas</a>
            
             
@@ -134,18 +134,29 @@ body{
     </aside>
 
     <!-- CONTEÚDO -->
-    <div class="main">
+   <div class="main">
 
-        <div class="header">
-            <h3>Painel de Indicadores Educacionais</h3>
-            <div><i class="fa fa-user"></i> {{ request.user }}</div>
-        </div>
+    <div class="header text-center py-4 border-bottom">
+        <h3 class="mb-1 font-weight-bold text-primary">
+            Painel de Indicadores Educacionais
+        </h3>
 
-        <main class="content">
-            {% block content %}{% endblock %}
-        </main>
+        <p class="mb-0">
+            Secretaria Municipal de Educação - Juazeiro
+        </p>
 
+        <p class="mb-0">
+            Superintendência Pedagógica
+        </p>
+
+        
     </div>
+
+    <main class="content mt-4">
+        {% block content %}{% endblock %}
+    </main>
+
+</div>
 </div>
 
 </body>

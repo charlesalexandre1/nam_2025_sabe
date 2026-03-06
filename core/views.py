@@ -1358,3 +1358,106 @@ def comparativo_habilidades(request):
     }
     
     return render(request, 'dashboard/comparativo_habilidades.html', context)
+
+
+#desempenho _habilidades
+
+from django.shortcuts import render
+from django.db.models import Avg
+from .models import DesempenhoEscola, Serie, Disciplina
+
+import json
+from django.db.models import Avg
+from django.shortcuts import render
+from .models import DesempenhoEscola, Serie, Disciplina
+
+
+def dashboard_desempenho(request):
+
+    ano = request.GET.get("ano")
+    serie = request.GET.get("serie")
+    disciplina = request.GET.get("disciplina")
+
+    dados = DesempenhoEscola.objects.all()
+
+    if ano:
+        dados = dados.filter(ano=ano)
+
+    if serie:
+        dados = dados.filter(serie_id=serie)
+
+    if disciplina:
+        dados = dados.filter(disciplina_id=disciplina)
+
+    # indicadores
+    media = dados.aggregate(
+        m=Avg("proficiencia_media")
+    )["m"] or 0
+
+    total_escolas = dados.values("escola").distinct().count()
+
+    total_alunos = dados.aggregate(
+        t=Avg("alunos_avaliados")
+    )["t"] or 0
+
+
+    # gráfico por série
+    labels = []
+    valores = []
+
+    for s in Serie.objects.all():
+
+        valor = dados.filter(
+            serie=s
+        ).aggregate(
+            v=Avg("proficiencia_media")
+        )["v"]
+
+        if valor is not None:
+
+            labels.append(s.nome)
+
+            valores.append(float(valor))   # ← CORREÇÃO
+
+
+    # tabela
+    tabela = []
+
+    for i in range(len(labels)):
+
+        tabela.append({
+            "serie": labels[i],
+            "valor": round(valores[i],1)
+        })
+
+
+    context = {
+
+        "labels": json.dumps(labels),
+        "valores": json.dumps(valores),
+
+        "tabela": tabela,
+
+        "anos": DesempenhoEscola.objects.values_list(
+            "ano",
+            flat=True
+        ).distinct(),
+
+        "series": Serie.objects.all(),
+        "disciplinas": Disciplina.objects.all(),
+
+        "media": round(float(media),1),
+        "total_escolas": total_escolas,
+        "total_alunos": int(total_alunos),
+
+        "filtro_ano": ano,
+        "filtro_serie": serie,
+        "filtro_disciplina": disciplina
+
+    }
+
+    return render(
+        request,
+        "dashboard/desempenho.html",
+        context
+    )

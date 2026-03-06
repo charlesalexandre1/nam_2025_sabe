@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid">
+
+<!-- TÍTULO -->
+
+<div class="row mb-4">
+<div class="col-12">
+
+<div class="box-titulo">
+<h3>Painel de Desempenho Educacional</h3>
+</div>
+
+</div>
+</div>
+
+
+<!-- FILTROS -->
+
+<div class="row mb-4">
+
+<div class="col-12">
+
+<form method="GET" class="filtros">
+
+<select name="ano">
+
+<option value="">Ano</option>
+
+{% for a in anos %}
+<option value="{{a}}" {% if filtro_ano == a|stringformat:"s" %}selected{% endif %}>
+{{a}}
+</option>
+{% endfor %}
+
+</select>
+
+
+<select name="serie">
+
+<option value="">Série</option>
+
+{% for s in series %}
+<option value="{{s.id}}" {% if filtro_serie == s.id|stringformat:"s" %}selected{% endif %}>
+{{s.nome}}
+</option>
+{% endfor %}
+
+</select>
+
+
+<select name="disciplina">
+
+<option value="">Disciplina</option>
+
+{% for d in disciplinas %}
+<option value="{{d.id}}" {% if filtro_disciplina == d.id|stringformat:"s" %}selected{% endif %}>
+{{d.nome}}
+</option>
+{% endfor %}
+
+</select>
+
+<button type="submit" class="btn-filtrar">
+Filtrar
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+
+<!-- CARDS -->
+
+<div class="row indicadores">
+
+<div class="col-md-4">
+
+<div class="card-indicador">
+
+<span>Proficiência média</span>
+
+<h2>{{media}}</h2>
+
+</div>
+
+</div>
+
+
+<div class="col-md-4">
+
+<div class="card-indicador">
+
+<span>Escolas avaliadas</span>
+
+<h2>{{total_escolas}}</h2>
+
+</div>
+
+</div>
+
+
+<div class="col-md-4">
+
+<div class="card-indicador">
+
+<span>Alunos avaliados</span>
+
+<h2>{{total_alunos}}</h2>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- GRÁFICO -->
+
+<div class="row mt-4">
+
+<div class="col-12">
+
+<div class="card-grafico">
+
+<h4>Desempenho por Série</h4>
+
+<canvas id="graficoSerie"></canvas>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- TABELA -->
+
+<div class="row mt-4">
+
+<div class="col-12">
+
+<div class="card-tabela">
+
+<h4>Resumo por Série</h4>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Série</th>
+<th>Proficiência média</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for l in tabela %}
+
+<tr>
+
+<td>{{l.serie}}</td>
+<td>{{l.valor}}</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+<style>
+
+/* título */
+
+.box-titulo{
+
+background:white;
+padding:16px;
+border-radius:6px;
+box-shadow:0 1px 3px rgba(0,0,0,0.1);
+
+}
+
+
+/* filtros */
+
+.filtros{
+
+display:flex;
+gap:10px;
+
+}
+
+.filtros select{
+
+padding:6px;
+border:1px solid #ccc;
+border-radius:4px;
+
+}
+
+.btn-filtrar{
+
+background:#0d6efd;
+color:white;
+border:none;
+padding:6px 14px;
+border-radius:4px;
+
+}
+
+
+/* cards */
+
+.indicadores{
+
+margin-top:10px;
+
+}
+
+.card-indicador{
+
+background:white;
+padding:18px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+
+}
+
+.card-indicador span{
+
+color:#777;
+font-size:13px;
+
+}
+
+.card-indicador h2{
+
+font-weight:bold;
+margin-top:6px;
+
+}
+
+
+/* gráfico */
+
+.card-grafico{
+
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+
+}
+
+canvas{
+
+max-height:400px;
+
+}
+
+
+/* tabela */
+
+.card-tabela{
+
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+
+}
+
+table{
+
+width:100%;
+border-collapse:collapse;
+
+}
+
+table th{
+
+background:#f3f4f6;
+padding:10px;
+border:1px solid #ddd;
+
+}
+
+table td{
+
+padding:10px;
+border:1px solid #ddd;
+
+}
+
+</style>
+
+
+
+<script>
+
+const labels = {{ labels|safe }};
+const valores = {{ valores|safe }};
+
+const ctx = document.getElementById("graficoSerie");
+
+new Chart(ctx, {
+
+type: "bar",
+
+data: {
+
+labels: labels,
+
+datasets: [{
+
+label: "Proficiência média",
+
+data: valores,
+
+backgroundColor:[
+"#6baed6",
+"#fd8d3c",
+"#74c476",
+"#9e9ac8",
+"#fdd0a2",
+"#9ecae1"
+]
+
+}]
+
+},
+
+options:{
+
+responsive:true,
+
+plugins:{
+legend:{
+display:false
+}
+},
+
+scales:{
+
+y:{
+beginAtZero:true
+}
+
+}
+
+}
+
+});
+
+</script>
+
+
+{% endblock %}

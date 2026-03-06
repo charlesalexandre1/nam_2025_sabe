@@ -46,6 +46,7 @@ urlpatterns = [
     path('escolas-participantes/', views.relatorio_escolas_participantes, name='relatorio_escolas_participantes'),
     path('dashboard/painel-esferas/', views.painel_esferas, name='painel_esferas'),
     path('dashboard/comparativo-habilidades/', views.comparativo_habilidades, name='comparativo_habilidades'),
+    path('dashboard/desempenho/', views.dashboard_desempenho, name='dashboard_desempenho'),
     
     ]
 
