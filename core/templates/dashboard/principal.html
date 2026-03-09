@@ -1,264 +1,599 @@
 {% extends "base.html" %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>SABE | Juazeiro-BA</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{
-    --azul:#1e40af;
-    --azul-claro:#2563eb;
-    --cinza:#f1f5f9;
-    --texto:#0f172a;
-    --card:#ffffff;
-    --sombra:0 8px 20px rgba(0,0,0,.06);
-    --radius:14px;
+/* ====== VARIÁVEIS (Replicadas do base.html para garantir consistência) ====== */
+:root {
+    /* Nova Paleta de Cores Claras com Laranja (sem azul) */
+    --accent-orange: #F97316;    /* Laranja vibrante para destaque principal */
+    --accent-orange-light: #FFEDD5; /* Laranja muito claro para fundos de destaque */
+    --accent-orange-dark: #C2410C; /* Laranja mais escuro para contraste */
+
+    /* Cores Neutras Claras */
+    --bg-light: #FFFFFF;         /* Fundo branco puro */
+    --bg-gray: #F9FAFB;          /* Fundo cinza muito, muito claro */
+    --text-dark: #1F2937;        /* Texto escuro quase preto */
+    --text-muted: #6B7280;       /* Texto cinza suave */
+    --card-bg: #FFFFFF;          /* Fundo de cards branco */
+    --border-color: #dd8f42;     /* Cor da borda muito suave */
+
+    /* Outros */
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+    --transition-speed: 0.25s ease-in-out;
 }
 
-/* ====== BASE ====== */
-body{
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: var(--cinza);
-    color: var(--texto);
-    margin:0;
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg-gray);
+    color: var(--text-dark);
+    margin: 0;
+    min-height: 100vh;
 }
 
-/* ====== HEADER ====== */
-.dashboard-header{
-    background: linear-gradient(90deg, #1e3a8a, #2563eb);
-    color:#fff;
-    padding:25px 30px;
-    border-radius:0 0 18px 18px;
-    box-shadow:0 6px 20px rgba(0,0,0,.15);
+/* ====== HEADER (do dashboard, não do base.html) ====== */
+.db-header {
+    /* Gradiente de laranja para o header do dashboard */
+    background: linear-gradient(135deg, var(--accent-orange-dark) 0%, var(--accent-orange) 100%);
+    color: #fff;
+    padding: 28px 32px 80px;
+    position: relative;
+    overflow: hidden;
 }
 
-.dashboard-header h1{
-    margin:0;
-    font-size:26px;
-    font-weight:600;
+.db-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    background: rgba(255,255,255,.05);
+    border-radius: 50%;
 }
 
-.dashboard-header span{
-    font-size:14px;
-    opacity:.9;
+.db-header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: 30%;
+    width: 400px; height: 200px;
+    background: rgba(255,255,255,.04);
+    border-radius: 50%;
+}
+
+.db-header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.db-header h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+}
+
+.db-header .subtitle {
+    font-size: 13px;
+    opacity: .8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-live {
+    background: rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.badge-live::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: #4ade80; /* Mantendo um verde para o "Ao vivo" para contraste */
+    border-radius: 50%;
+    animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .6; transform: scale(1.3); }
 }
 
 /* ====== CONTAINER ====== */
-.container{
-    padding:25px;
+.db-body {
+    padding: 0 24px 32px;
+    margin-top: -52px;
+    position: relative;
+    z-index: 2;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ====== FILTROS ====== */
-.filtros{
-    background:var(--card);
-    padding:18px;
-    border-radius:var(--radius);
-    box-shadow:var(--sombra);
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
-    gap:15px;
-    margin-bottom:20px;
+.filtros-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
 }
 
-.filtros label{
-    font-size:13px;
-    font-weight:600;
-    display:flex;
-    flex-direction:column;
+.filtros-card .filtro-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 160px;
+    flex: 1;
 }
 
-.filtros select{
-    margin-top:6px;
-    padding:8px 10px;
-    border-radius:8px;
-    border:1px solid #e5e7eb;
-    font-size:14px;
+.filtros-card label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+}
+
+.filtros-card select {
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border-color);
+    font-size: 14px;
+    color: var(--text-dark);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+    appearance: none;
+    /* SVG da seta ajustado para a cor do texto muted */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+
+.filtros-card select:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 3px rgba(249,115,22,.12);
+}
+
+.btn-reset {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border-color);
+    background: var(--card-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    white-space: nowrap;
+}
+
+.btn-reset:hover {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
 }
 
 /* ====== LOADING ====== */
-#loading{
-    text-align:center;
-    padding:12px;
-    font-weight:600;
-    color:#2563eb;
-    display:none;
+#loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 16px;
+    background: var(--accent-orange-light);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-orange);
+    border: 1px solid rgba(249,115,22,.3);
 }
+
+.spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(249,115,22,.3);
+    border-top-color: var(--accent-orange);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ====== CARDS ====== */
-.cards{
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-    gap:18px;
-    margin-bottom:25px;
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
-.card{
-    background:var(--card);
-    border-radius:var(--radius);
-    padding:20px;
-    box-shadow:var(--sombra);
-    text-align:center;
-    transition:.3s;
+.stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    border-left: 4px solid transparent;
 }
 
-.card:hover{
-    transform:translateY(-4px);
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
 }
 
-.card h4{
-    margin:0;
-    font-size:13px;
-    color:#475569;
+/* Cores dos cards ajustadas para a nova paleta (laranja e cinzas) */
+.stat-card.azul   { border-left-color: var(--accent-orange); } /* Laranja */
+.stat-card.verde  { border-left-color: #4ade80; } /* Verde para um toque de cor diferente */
+.stat-card.roxo   { border-left-color: var(--text-muted); } /* Cinza muted */
+.stat-card.amarelo{ border-left-color: var(--accent-orange-light); } /* Laranja claro */
+
+.stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
 }
 
-.card h2{
-    margin:8px 0 0;
-    font-size:28px;
-    color:var(--azul);
+/* Fundos dos ícones dos cards ajustados */
+.stat-card.azul    .stat-icon { background: var(--accent-orange-light); } /* Laranja claro */
+.stat-card.verde   .stat-icon { background: rgba(74,222,128,.15); } /* Verde claro */
+.stat-card.roxo    .stat-icon { background: rgba(107,114,128,.1); } /* Cinza claro */
+.stat-card.amarelo .stat-icon { background: var(--accent-orange-light); } /* Laranja claro */
+
+.stat-info { min-width: 0; }
+
+.stat-info h4 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
 }
 
-/* ====== GRAFICOS ====== */
-.graficos{
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(420px,1fr));
-    gap:22px;
+.stat-info h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
 }
 
-.grafico{
-    background:var(--card);
-    border-radius:var(--radius);
-    padding:18px;
-    box-shadow:var(--sombra);
+.stat-info .stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
 }
 
-.grafico h3{
-    margin-bottom:12px;
-    font-size:16px;
-    color:#1e293b;
+/* ====== GRID GRÁFICOS ====== */
+.graficos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 colunas de tamanho igual */
+    gap: 20px;
 }
 
-canvas{
-    max-height:380px;
+.grafico-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
 }
 
-/* ====== TABELA ====== */
-table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:13px;
+/* Tamanhos */
+.col-4  { grid-column: span 1; }
+.col-6  { grid-column: span 1; }
+
+
+.grafico-card h3 {
+    margin: 0 0 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-th{
-    background:#f1f5f9;
-    text-align:left;
-    padding:10px;
+.grafico-card h3 .icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    background: var(--accent-orange-light);
+    color: var(--accent-orange);
 }
 
-td{
-    padding:8px;
-    border-bottom:1px solid #e5e7eb;
+canvas { max-height: 340px; }
+
+/* ====== TABELA RANKING ====== */
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
 }
 
-tr:hover{
-    background:#f8fafc;
+.ranking-table th {
+    background: var(--bg-gray);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
 }
+
+.ranking-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-dark);
+}
+
+.ranking-table tr:last-child td { border-bottom: none; }
+.ranking-table tr:hover td { background: var(--accent-orange-light); }
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Cores dos badges de ranking ajustadas */
+.rank-1 { background: var(--accent-orange); color: #fff; }
+.rank-2 { background: var(--accent-orange-dark); color: #fff; }
+.rank-3 { background: var(--accent-orange-light); color: var(--text-dark); }
+.rank-n { background: var(--bg-gray); color: var(--text-muted); }
+
+.score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.score-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+    max-width: 80px;
+}
+
+.score-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-orange), var(--accent-orange-dark)); /* Gradiente de laranja */
+    border-radius: 3px;
+}
+
+/* ====== LEGENDA DOUGHNUT ====== */
+.distribuicao-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dist-canvas-wrap {
+    position: relative;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dist-total {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+}
+.dist-total strong {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+}
+.dist-total small { font-size: 11px; color: var(--text-muted); }
+
+.dist-legenda {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.legenda-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.legenda-pct {
+    margin-left: auto;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* Cores da distribuição ajustadas para a nova paleta */
+.dist-legenda .legenda-item:nth-child(1) .legenda-pct { color: #EF4444; } /* Vermelho */
+.dist-legenda .legenda-item:nth-child(2) .legenda-pct { color: #F59E0B; } /* Amarelo */
+.dist-legenda .legenda-item:nth-child(3) .legenda-pct { color: #4ade80; } /* Verde */
+.dist-legenda .legenda-item:nth-child(4) .legenda-pct { color: var(--accent-orange); } /* Laranja */
+
 
 /* ====== RESPONSIVO ====== */
-@media(max-width:600px){
-    .graficos{
-        grid-template-columns:1fr;
+@media (max-width: 900px) {
+    .graficos-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 colunas em tablets */
     }
+    .col-4, .col-6 { grid-column: span 1; }
+    .db-body { padding: 0 14px 24px; }
+    .db-header { padding: 22px 20px 70px; }
+}
+
+@media (max-width: 600px) {
+    .cards-grid { grid-template-columns: 1fr 1fr; }
+    .stat-card { padding: 14px; gap: 10px; }
+    .stat-info h2 { font-size: 20px; }
+    .graficos-grid {
+        grid-template-columns: 1fr; /* 1 coluna em mobile */
+    }
+    .col-4, .col-6 { grid-column: span 1; }
 }
 </style>
-</head>
-
-<body>
 
 
-<div class="container">
+<div class="db-body">
 
     <!-- FILTROS -->
-    <div class="filtros">
+    <div class="filtros-card">
         <form id="form-filtros" style="display:contents">
-            <label>Ano
+            <div class="filtro-group">
+                <label>Ano</label>
                 <select name="ano" onchange="atualizarGraficos()">
                     {% for ano in anos %}
                         <option value="{{ ano }}" {% if ano == ano_selecionado %}selected{% endif %}>{{ ano }}</option>
                     {% endfor %}
                 </select>
-            </label>
+            </div>
 
-            <label>Disciplina
+            <div class="filtro-group">
+                <label>Disciplina</label>
                 <select name="disciplina" onchange="atualizarGraficos()">
                     <option value="">Todas</option>
                     {% for d in disciplinas %}
                         <option value="{{ d.id }}">{{ d.nome }}</option>
                     {% endfor %}
                 </select>
-            </label>
+            </div>
 
-            <label>Série
+            <div class="filtro-group">
+                <label>Série</label>
                 <select name="serie" onchange="atualizarGraficos()">
                     <option value="">Todas</option>
                     {% for s in series %}
                         <option value="{{ s.id }}">{{ s.nome }}</option>
                     {% endfor %}
                 </select>
-            </label>
+            </div>
 
-            <label>Localidade
+            <div class="filtro-group">
+                <label>Localidade</label>
                 <select name="localidade" onchange="atualizarGraficos()">
                     <option value="">Todas</option>
                     {% for l in localidades %}
                         <option value="{{ l.id }}">{{ l.nome }}</option>
                     {% endfor %}
                 </select>
-            </label>
+            </div>
         </form>
+
+        <button class="btn-reset" onclick="resetarFiltros()">↺ Limpar</button>
     </div>
 
-    <div id="loading">🔄 Atualizando indicadores...</div>
+    <!-- LOADING -->
+    <div id="loading">
+        <div class="spinner"></div>
+        Atualizando indicadores...
+    </div>
 
     <!-- CARDS -->
-    <div class="cards" id="cards-estatisticas"></div>
+    <div class="cards-grid" id="cards-estatisticas"></div>
 
-    <!-- GRAFICOS -->
-    <div class="graficos">
+    <!-- GRÁFICOS PRINCIPAIS (sem evolução e sem comparação) -->
+    <div class="graficos-grid">
 
-        <div class="grafico">
-            <h3>📈 Evolução da Proficiência</h3>
-            <canvas id="grafico-evolucao"></canvas>
+        <!-- Distribuição -->
+        <div class="grafico-card col-4">
+            <h3><span class="icon">📊</span> Distribuição de Níveis</h3>
+            <div class="distribuicao-wrap">
+                <div class="dist-canvas-wrap">
+                    <canvas id="grafico-distribuicao" style="max-height:200px"></canvas>
+                    <div class="dist-total" id="dist-total">
+                        <strong>–</strong>
+                        <small>alunos</small>
+                    </div>
+                </div>
+                <div class="dist-legenda" id="dist-legenda"></div>
+            </div>
         </div>
 
-        <div class="grafico">
-            <h3>📊 Distribuição de Níveis</h3>
-            <canvas id="grafico-distribuicao"></canvas>
-        </div>
-
-        <div class="grafico">
-            <h3>🏆 Top Escolas</h3>
+        <!-- Ranking -->
+        <div class="grafico-card col-4">
+            <h3><span class="icon">🏆</span> Top Escolas</h3>
             <div id="tabela-ranking"></div>
         </div>
 
-        <div class="grafico">
-            <h3>📍 Proficiência por Localidade</h3>
+        <!-- Localidades -->
+        <div class="grafico-card col-4">
+            <h3><span class="icon">📍</span> Proficiência por Localidade</h3>
             <canvas id="grafico-localidades"></canvas>
         </div>
 
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let graficoEvolucao, graficoDistribuicao, graficoLocalidades;
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#6B7280'; /* text-muted */
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(31,41,55,.9)'; /* text-dark com opacidade */
+Chart.defaults.plugins.tooltip.titleColor = '#fff';
+Chart.defaults.plugins.tooltip.bodyColor = 'rgba(255,255,255,.8)';
 
-window.onload = atualizarGraficos;
+// Cores da distribuição ajustadas para a nova paleta
+const CORES_DIST = ['#EF4444','#F59E0B','#4ade80','var(--accent-orange)']; // Vermelho, Amarelo, Verde, Laranja
+const LABELS_DIST = ['Abaixo do Básico','Básico','Adequado','Avançado'];
+
+let graficoDistribuicao, graficoLocalidades; // Removido graficoComparacao
+
+window.onload = () => {
+    atualizarGraficos();
+    // remover chamada a atualizarComparacao();
+};
 
 function atualizarGraficos() {
-    document.getElementById('loading').style.display = 'block';
+    const loading = document.getElementById('loading');
+    loading.style.display = 'flex';
 
     const params = new URLSearchParams(new FormData(document.getElementById('form-filtros')));
 
@@ -266,67 +601,149 @@ function atualizarGraficos() {
         .then(r => r.json())
         .then(d => {
             atualizarCards(d.municipio);
-            atualizarEvolucao(d.evolucao);
-            atualizarDistribuicao(d.distribuicao);
+            atualizarDistribuicao(d.distribuicao, d.municipio);
             atualizarRanking(d.top_escolas);
             atualizarLocalidades(d.localidades);
         })
-        .finally(() => document.getElementById('loading').style.display = 'none');
+        .catch(() => {})
+        .finally(() => loading.style.display = 'none');
+}
+
+function resetarFiltros() {
+    document.getElementById('form-filtros').reset();
+    atualizarGraficos();
+    // remover chamada a atualizarComparacao();
 }
 
 function atualizarCards(d) {
-    document.getElementById('cards-estatisticas').innerHTML = `
-        <div class="card"><h4>Proficiência Média</h4><h2>${d.media_proficiencia.toFixed(1)}</h2></div>
-        <div class="card"><h4>Participação</h4><h2>${d.media_participacao.toFixed(1)}%</h2></div>
-        <div class="card"><h4>Escolas Avaliadas</h4><h2>${d.total_escolas}</h2></div>
-        <div class="card"><h4>Alunos Avaliados</h4><h2>${d.total_alunos.toLocaleString('pt-BR')}</h2></div>
-    `;
-}
-
-function atualizarEvolucao(dados) {
-    const ctx = document.getElementById('grafico-evolucao');
-    if (graficoEvolucao) graficoEvolucao.destroy();
-    graficoEvolucao = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: dados.map(i => i.ano),
-            datasets: [{
-                label: 'Proficiência',
-                data: dados.map(i => i.proficiencia),
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37,99,235,0.15)',
-                tension: 0.3,
-                fill:true
-            }]
+    const configs = [
+        {
+            classe: 'azul', icon: '📐',
+            titulo: 'Proficiência Média',
+            valor: d.media_proficiencia.toFixed(1),
+            sub: 'pontos'
+        },
+        {
+            classe: 'verde', icon: '✅',
+            titulo: 'Taxa de Participação',
+            valor: d.media_participacao.toFixed(1) + '%',
+            sub: 'dos matriculados'
+        },
+        {
+            classe: 'roxo', icon: '🏫',
+            titulo: 'Escolas Avaliadas',
+            valor: d.total_escolas,
+            sub: 'unidades'
+        },
+        {
+            classe: 'amarelo', icon: '🎓',
+            titulo: 'Alunos Avaliados',
+            valor: d.total_alunos.toLocaleString('pt-BR'),
+            sub: 'estudantes'
         }
-    });
+    ];
+
+    document.getElementById('cards-estatisticas').innerHTML = configs.map(c => `
+        <div class="stat-card ${c.classe}">
+            <div class="stat-icon">${c.icon}</div>
+            <div class="stat-info">
+                <h4>${c.titulo}</h4>
+                <h2>${c.valor}</h2>
+                <div class="stat-sub">${c.sub}</div>
+            </div>
+        </div>
+    `).join('');
 }
 
-function atualizarDistribuicao(d) {
+function atualizarDistribuicao(d, mun) {
+    const valores = [d.abaixo_basico, d.basico, d.adequado, d.avancado];
+    const total = valores.reduce((a, b) => a + b, 0);
+
     const ctx = document.getElementById('grafico-distribuicao');
     if (graficoDistribuicao) graficoDistribuicao.destroy();
+
     graficoDistribuicao = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Abaixo','Básico','Adequado','Avançado'],
-            datasets: [{ 
-                data: [d.abaixo_basico, d.basico, d.adequado, d.avancado]
+            labels: LABELS_DIST,
+            datasets: [{
+                data: valores,
+                backgroundColor: CORES_DIST,
+                borderWidth: 3,
+                borderColor: '#fff',
+                hoverBorderColor: '#fff',
+                hoverOffset: 6
             }]
+        },
+        options: {
+            cutout: '68%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => {
+                            const pct = total > 0 ? (context.raw / total * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${pct}%`;
+                        }
+                    }
+                }
+            }
         }
     });
+
+    const totalEl = document.getElementById('dist-total');
+    totalEl.querySelector('strong').textContent = (mun.total_alunos || total).toLocaleString('pt-BR');
+
+    const legendaEl = document.getElementById('dist-legenda');
+    legendaEl.innerHTML = LABELS_DIST.map((l, i) => {
+        const pct = total > 0 ? (valores[i] / total * 100).toFixed(1) : '–';
+        return `
+            <div class="legenda-item">
+                <div class="legenda-dot" style="background:${CORES_DIST[i]}"></div>
+                <span>${l}</span>
+                <span class="legenda-pct" style="color:${CORES_DIST[i]}">${pct}%</span>
+            </div>
+        `;
+    }).join('');
 }
 
 function atualizarRanking(escolas) {
-    let html = '<table><tr><th>#</th><th>Escola</th><th>Média</th><th>Localidade</th></tr>';
-    escolas.forEach((e,i)=>{
-        html+=`<tr>
-            <td>${i+1}</td>
-            <td>${e.escola__nome}</td>
-            <td>${e.media.toFixed(1)}</td>
-            <td>${e.escola__localidade__nome}</td>
-        </tr>`;
+    const maxMedia = escolas.length ? escolas[0].media : 1;
+
+    let html = `
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Escola</th>
+                    <th>Localidade</th>
+                    <th>Proficiência</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    escolas.forEach((e, i) => {
+        const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+        const pct = ((e.media / maxMedia) * 100).toFixed(0);
+        html += `
+            <tr>
+                <td><span class="rank-badge ${rankClass}">${i + 1}</span></td>
+                <td>${e.escola__nome}</td>
+                <td>${e.escola__localidade__nome}</td>
+                <td>
+                    <div class="score-bar-wrap">
+                        <strong>${e.media.toFixed(1)}</strong>
+                        <div class="score-bar">
+                            <div class="score-bar-fill" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
     });
-    html+='</table>';
+
+    html += '</tbody></table>';
     document.getElementById('tabela-ranking').innerHTML = html;
 }
 
@@ -336,22 +753,50 @@ function atualizarLocalidades(localidades) {
     const ctx = document.getElementById('grafico-localidades');
     if (graficoLocalidades) graficoLocalidades.destroy();
 
+    const maxVal = Math.max(...localidades.map(l => l.media));
+
     graficoLocalidades = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: localidades.map(i=>i.nome),
+            labels: localidades.map(i => i.nome),
             datasets: [{
-                label:'Proficiência',
-                data: localidades.map(i=>i.media)
+                label: 'Proficiência',
+                data: localidades.map(i => i.media),
+                backgroundColor: localidades.map(i => {
+                    const alpha = 0.5 + 0.5 * (i.media / maxVal);
+                    return `rgba(249,115,22,${alpha.toFixed(2)})`; /* Laranja para as barras */
+                }),
+                borderColor: 'var(--accent-orange)', /* Borda laranja */
+                borderWidth: 1.5,
+                borderRadius: 6,
+                borderSkipped: false
             }]
         },
         options: {
-            indexAxis: 'y'
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => ' Proficiência: ' + context.parsed.x.toFixed(1)
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'var(--border-color)' }, /* Grid mais clara */
+                    border: { display: false },
+                    ticks: { callback: v => v.toFixed(0) }
+                },
+                y: {
+                    grid: { display: false },
+                    border: { display: false }
+                }
+            }
         }
     });
 }
 </script>
 
-</body>
-</html>
 {% endblock %}

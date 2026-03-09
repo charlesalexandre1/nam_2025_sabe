@@ -1,163 +1,406 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SABE | Juazeiro-BA</title>
 
-<title>SABE | Juazeiro-BA</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Google Fonts (Inter para tipografia moderna) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<style>
-:root{
-    --azul:#1e40af;
-    --azul2:#2563eb;
-    --cinza:#f1f5f9;
-    --card:#ffffff;
-    --texto:#0f172a;
-    --radius:14px;
-    --sombra:0 10px 25px rgba(0,0,0,.08);
-}
+    <style>
+        /* ====== VARIÁVEIS CSS (Paleta Moderna: Laranja + Neutros Frios) ====== */
+        :root {
+            --accent-primary: #F97316;       /* Laranja vibrante para destaque */
+            --accent-light: #FFEDD5;         /* Laranja muito claro para fundos sutis */
+            --accent-dark: #C2410C;          /* Laranja mais escuro para contraste */
 
-/* BASE */
-body{
-    margin:0;
-    font-family:'Segoe UI',Arial,sans-serif;
-    background:var(--cinza);
-    color:var(--texto);
-}
+            /* Neutros Frios e Modernos */
+            --gray-900: #1F2937;             /* Texto muito escuro */
+            --gray-700: #374151;             /* Títulos e texto principal */
+            --gray-500: #6B7280;             /* Texto muted, ícones */
+            --gray-300: #D1D5DB;             /* Bordas, divisores */
+            --gray-100: #F3F4F6;             /* Fundo de elementos, hover */
+            --gray-50:  #F9FAFB;             /* Fundo principal da página */
+            --white:    #FFFFFF;             /* Fundo de cards, sidebar */
 
-/* LAYOUT */
-.layout{
-    display:grid;
-    grid-template-columns:260px 1fr;
-    min-height:100vh;
-}
+            /* Sombras mais suaves e modernas */
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-/* MENU */
-.sidebar{
-    background:linear-gradient(180deg,#1e3a8a,#1e40af);
-    color:#fff;
-    padding:22px 15px;
-}
+            --radius-lg: 16px;               /* Raio de borda maior para cards */
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --transition-fast: 0.15s ease-out;
+            --transition-default: 0.25s ease-in-out;
+        }
 
-.sidebar h2{
-    text-align:center;
-    margin-bottom:25px;
-    font-size:20px;
-}
+        /* ====== BASE ====== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-.menu a{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:12px 14px;
-    color:#fff;
-    text-decoration:none;
-    border-radius:10px;
-    margin-bottom:6px;
-    transition:.3s;
-    font-size:14px;
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-700);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
-.menu a:hover,
-.menu a.active{
-    background:rgba(255,255,255,.15);
-}
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 0.5em;
+            line-height: 1.2;
+            color: var(--gray-900);
+        }
 
-/* HEADER */
-.header{
-    background:#fff;
-    padding:14px 22px;
-    box-shadow:var(--sombra);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
+        p {
+            margin-bottom: 1em;
+        }
 
-.header h3{
-    margin:0;
-    font-size:18px;
-}
+        a {
+            text-decoration: none;
+            color: var(--accent-primary);
+            transition: color var(--transition-fast);
+        }
 
-/* CONTEUDO */
-.main{
-    display:flex;
-    flex-direction:column;
-    width: 100%;
-}
+        a:hover {
+            color: var(--accent-dark);
+        }
 
-.content{
-    padding:25px;
-}
+        /* ====== LAYOUT PRINCIPAL ====== */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            background-color: var(--gray-50);
+        }
 
-@media(max-width:900px){
-    .layout{
-        grid-template-columns:1fr;
-    }
-    .sidebar{
-        display:none;
-    }
-}
-</style>
+        /* ====== SIDEBAR (MENU LATERAL) ====== */
+        .sidebar {
+            background: var(--white); /* Fundo branco puro */
+            color: var(--gray-700);
+            padding: 25px 20px;
+            box-shadow: var(--shadow-md); /* Sombra mais suave */
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            border-right: 1px solid var(--gray-100); /* Borda mais sutil */
+            scrollbar-width: thin;
+            scrollbar-color: var(--gray-300) transparent;
+        }
+
+        /* Custom scrollbar for Webkit browsers */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background-color: var(--gray-300);
+            border-radius: 10px;
+            border: 2px solid transparent;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--gray-100); /* Divisor mais suave */
+        }
+
+        .sidebar-header .app-name {
+            font-size: 28px; /* Um pouco maior */
+            font-weight: 700;
+            margin-bottom: 5px;
+            letter-spacing: -1px; /* Mais compacto */
+            color: var(--accent-dark); /* Laranja escuro para o nome do app */
+        }
+
+        .sidebar-header .app-subtitle {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 5px;
+            color: var(--gray-500);
+        }
+
+        .sidebar-section-title {
+            font-size: 12px; /* Um pouco menor */
+            font-weight: 600;
+            color: var(--gray-500);
+            margin-top: 30px;
+            margin-bottom: 12px;
+            padding-left: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px; /* Mais espaçado */
+        }
+
+        .menu-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu-nav li {
+            margin-bottom: 4px;
+        }
+
+        .menu-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            color: var(--gray-700); /* Cor padrão do texto do menu */
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+            font-size: 15px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-nav a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--accent-primary); /* Borda ativa com o laranja */
+            transform: translateX(-100%);
+            transition: transform var(--transition-fast);
+        }
+
+        .menu-nav a:hover {
+            background: var(--gray-100); /* Fundo cinza claro no hover */
+            color: var(--accent-primary); /* Texto laranja no hover */
+            transform: translateX(3px);
+        }
+
+        .menu-nav a.active {
+            background: var(--accent-light); /* Fundo laranja muito claro para ativo */
+            color: var(--accent-dark); /* Texto laranja escuro para ativo */
+            font-weight: 600;
+            box-shadow: var(--shadow-xs); /* Sombra bem sutil para ativo */
+        }
+
+        .menu-nav a.active::before {
+            transform: translateX(0);
+        }
+
+        .menu-nav a i {
+            font-size: 17px;
+            width: 20px;
+            text-align: center;
+            color: var(--gray-500); /* Cor padrão do ícone */
+            transition: color var(--transition-fast);
+        }
+
+        .menu-nav a:hover i,
+        .menu-nav a.active i {
+            color: var(--accent-primary); /* Ícone com o laranja no hover/ativo */
+        }
+
+        /* ====== MAIN CONTENT AREA ====== */
+        .main-content-area {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            background-color: var(--gray-50);
+        }
+
+        /* ====== HEADER DO CONTEÚDO ====== */
+        .content-header {
+            background: var(--white);
+            padding: 20px 30px; /* Um pouco mais de padding */
+            box-shadow: var(--shadow-xs); /* Sombra bem leve */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-100); /* Borda mais suave */
+        }
+
+        .content-header .title {
+            margin: 0 0 5px;
+            font-size: 24px; /* Um pouco maior */
+            font-weight: 700;
+            color: var(--gray-900); /* Título principal mais escuro */
+        }
+
+        .content-header .subtitle {
+            margin: 0;
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        .content-header .subtitle span {
+            display: block;
+        }
+
+        /* ====== CONTEÚDO PRINCIPAL ====== */
+        .content-body {
+            flex-grow: 1;
+            padding: 30px;
+            max-width: 100%;
+        }
+
+        /* ====== RESPONSIVIDADE ====== */
+        .sidebar-toggle {
+            display: none;
+            background: var(--accent-primary);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 18px;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            box-shadow: var(--shadow-md);
+            transition: background-color var(--transition-fast);
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-dark);
+        }
+
+        @media (max-width: 992px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                transition: left var(--transition-default);
+                height: 100%;
+                width: 260px;
+                box-shadow: var(--shadow-lg); /* Sombra mais forte quando aberto */
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .main-content-area {
+                margin-left: 0;
+            }
+
+            .content-header {
+                padding: 15px 20px;
+            }
+
+            .content-body {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .content-header .title {
+                font-size: 20px;
+            }
+            .content-header .subtitle {
+                font-size: 13px;
+            }
+            .content-body {
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="layout">
+    <!-- Botão para abrir/fechar sidebar em mobile -->
+    <button class="sidebar-toggle" aria-label="Abrir menu" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
 
-    <!-- MENU LATERAL -->
-    <aside class="sidebar no-print">
-        <h4><p>Núcleo de Avaliação e Monitoramento - NAM</p></h4>
-        <h3>SABE</h3>
+    <div class="layout">
 
-        <nav class="menu">
-            <a href="/dashboard/" class="active"><i class="fa fa-chart-line"></i> Dashboard</a>
-            <a href="/escolas-participantes/"><i class="fa fa-school"></i> Escolas</a>
-            <a href="/dashboard/painel-esferas/"><i class="fa fa-layer-group"></i> Esferas</a>
-            <a href="/dashboard/boletim_escola/"><i class="fa fa-book"></i> Boletim</a>
-            <a href="/dashboard/desempenho/"><i class="fa fa-trophy"></i> Desempenho</a>
-            <a href="/dashboard/comparativo-habilidades/"><i class="fa fa-file-pdf"></i> Esferas</a>
-           
-            
-        </nav>
-    <h3>SAEB</h3>
+        <!-- MENU LATERAL -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="app-name">NAM</div>
+                <div class="app-subtitle">Núcleo de Avaliação e Monitoramento - NAM</div>
+            </div>
 
-        <nav class="menu">
-            <a href="/dashboard/" class="active"><i class="fa fa-chart-line"></i> Dashboard</a>
-            <a href="/escolas-participantes/"><i class="fa fa-school"></i> Escolas</a>
-            <a href="/dashboard/painel-esferas/"><i class="fa fa-layer-group"></i> Esferas</a>
-            <a href="/dashboard/boletim_escola/"><i class="fa fa-book"></i> Boletim</a>
-            <a href="/dashboard/ranking/"><i class="fa fa-trophy"></i> Ranking</a>
-            <a href="/dashboard/relatorios/"><i class="fa fa-file-pdf"></i> Relatórios</a>
-        </nav>
-    </aside>
+            <h4 class="sidebar-section-title">SABE</h4>
+            <nav class="menu-nav" aria-label="Menu SABE">
+                <ul>
+                    <li><a href="/dashboard/" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li><a href="/escolas-participantes/"><i class="fas fa-school"></i> Escolas</a></li>
+                    <li><a href="/dashboard/painel-esferas/"><i class="fas fa-layer-group"></i> Esferas</a></li>
+                    <li><a href="/dashboard/boletim_escola/"><i class="fas fa-book"></i> Boletim</a></li>
+                    <li><a href="/dashboard/desempenho/"><i class="fas fa-trophy"></i> Desempenho</a></li>
+                    <li><a href="/dashboard/comparativo-habilidades/"><i class="fas fa-chart-bar"></i> Habilidades</a></li>
+                </ul>
+            </nav>
 
-    <!-- CONTEÚDO -->
-   <div class="main">
+          
+        </aside>
 
-    <div class="header text-center py-4 border-bottom">
-        <h3 class="mb-1 font-weight-bold text-primary">
-            Painel de Indicadores Educacionais
-        </h3>
+        <!-- CONTEÚDO PRINCIPAL -->
+        <div class="main-content-area">
 
-        <p class="mb-0">
-            Secretaria Municipal de Educação - Juazeiro
-        </p>
+            <header class="content-header">
+                <h1 class="title">Indicadores Educacionais-SABE</h1>
+                <p class="subtitle">
+                    <span>Secretaria Municipal de Educação - Juazeiro</span>
+                    <span>Superintendência Pedagógica</span>
+                    <span>Núcleo de Avaliação e Monitoramento - NAM</span>
+                </p>
+            </header>
 
-        <p class="mb-0">
-            Superintendência Pedagógica
-        </p>
+            <main class="content-body">
+                {% block content %}{% endblock %}
+            </main>
 
-        
+        </div>
     </div>
 
-    <main class="content mt-4">
-        {% block content %}{% endblock %}
-    </main>
-
-</div>
-</div>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+            // Adiciona um overlay para fechar a sidebar ao clicar fora
+            if (sidebar.classList.contains('active')) {
+                const overlay = document.createElement('div');
+                overlay.id = 'sidebar-overlay';
+                overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 999;';
+                document.body.appendChild(overlay);
+                overlay.onclick = () => {
+                    sidebar.classList.remove('active');
+                    overlay.remove();
+                };
+            } else {
+                document.getElementById('sidebar-overlay')?.remove();
+            }
+        }
+    </script>
 
 </body>
 </html>
