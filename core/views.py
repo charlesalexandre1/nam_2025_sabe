@@ -1081,47 +1081,120 @@ from django.shortcuts import render
 from django.db.models import Sum, Count, Max
 from .models import DesempenhoEscola
 
+from django.db.models import Sum, Count
+from itertools import groupby
+from collections import defaultdict
+
+from django.db.models import Sum, Max
+from collections import defaultdict
+from django.db.models import Sum, Max
+from collections import defaultdict
+from django.shortcuts import render
+from .models import DesempenhoEscola, Localidade # Certifique-se de que Localidade está importado
 
 def relatorio_escolas_participantes(request):
 
     queryset = DesempenhoEscola.objects.select_related(
-        'escola', 'escola__localidade', 'disciplina', 'serie'
+        'escola', 'escola__localidade', 'serie'
     )
 
-    localidade = request.GET.get('localidade')
-    escola = request.GET.get('escola')
+    localidade_id = request.GET.get('localidade') # Renomeado para evitar confusão
+    escola_filtro = request.GET.get('escola')
     ano_inicio = request.GET.get('ano_inicio')
     ano_fim = request.GET.get('ano_fim')
 
-    if localidade:
-        queryset = queryset.filter(escola__localidade_id=localidade)
+    if localidade_id:
+        try:
+            # Tenta converter para int. Se falhar, ignora o filtro ou trata o erro.
+            localidade_id = int(localidade_id)
+            queryset = queryset.filter(escola__localidade_id=localidade_id)
+        except ValueError:
+            # Opcional: logar o erro ou adicionar uma mensagem para o usuário
+            pass # Por enquanto, apenas ignora o filtro se o ID for inválido
 
-    if escola:
-        queryset = queryset.filter(escola_id=escola)
-
+    if escola_filtro:
+        queryset = queryset.filter(escola_id=escola_filtro)
     if ano_inicio and ano_fim:
         queryset = queryset.filter(ano__range=[ano_inicio, ano_fim])
+    elif ano_inicio:
+        queryset = queryset.filter(ano__gte=ano_inicio)
+    elif ano_fim:
+        queryset = queryset.filter(ano__lte=ano_fim)
 
-    dados = (
+    # Agrupa por escola + série → Max evita duplicação por disciplina
+    dados_series = (
         queryset
         .values(
             'ano',
             'escola__id',
             'escola__nome',
-            'escola__localidade__nome'
+            'escola__localidade__nome',
+            'serie__id',
+            'serie__nome',
         )
         .annotate(
-            total_avaliados=Sum('alunos_avaliados'),
-            series=Count('serie_id', distinct=True),
-            disciplinas=Count('disciplina_id', distinct=True),
+            alunos_serie=Max('alunos_avaliados'),
+            previstos_serie=Max('alunos_previstos'),
         )
-        .order_by('ano', 'escola__nome')
+        .order_by('ano', 'escola__nome', 'serie__nome')
     )
 
-    return render(request, 'dashboard/relatorio_escolas_participantes.html', {
-        'dados': dados
+    # Monta estrutura hierárquica por (ano, escola)
+    escolas_dict = defaultdict(lambda: {
+        'ano': '',
+        'nome': '',
+        'localidade': '',
+        'series': [],
+        'total_avaliados': 0,
+        'total_previstos': 0,
     })
 
+    for d in dados_series:
+        chave = (d['ano'], d['escola__id'])
+        escolas_dict[chave]['ano'] = d['ano']
+        escolas_dict[chave]['nome'] = d['escola__nome']
+        escolas_dict[chave]['localidade'] = d['escola__localidade__nome']
+        escolas_dict[chave]['series'].append({
+            'nome': d['serie__nome'],
+            'avaliados': d['alunos_serie'],
+            'previstos': d['previstos_serie'],
+        })
+        escolas_dict[chave]['total_avaliados'] += d['alunos_serie']
+        escolas_dict[chave]['total_previstos'] += d['previstos_serie']
+
+    dados_agrupados = sorted(
+        escolas_dict.values(),
+        key=lambda x: (x['ano'], x['nome'])
+    )
+
+    # Popula filtros
+    # Certifique-se de que Localidade está importado corretamente
+    localidades = Localidade.objects.all().order_by('nome')
+
+    # Anos disponíveis para os selects de filtro (todos os anos que existem dados)
+    anos_disponiveis = (
+        DesempenhoEscola.objects
+        .values_list('ano', flat=True)
+        .distinct()
+        .order_by('ano')
+    )
+
+    # CÁLCULO DOS TOTAIS GLOBAIS PARA OS CARDS DE STATS E O RODAPÉ DA TABELA
+    grand_total_avaliados = sum(e['total_avaliados'] for e in dados_agrupados)
+    grand_total_previstos = sum(e['total_previstos'] for e in dados_agrupados)
+    total_series_count = sum(len(escola['series']) for escola in dados_agrupados)
+
+    return render(request, 'dashboard/relatorio_escolas_participantes.html', {
+        'dados': dados_agrupados,
+        'localidades': localidades,
+        'anos_disponiveis': anos_disponiveis,
+        'filtro_localidade': str(localidade_id) if localidade_id else '', # Garante que seja string para comparação no template
+        'filtro_ano_inicio': ano_inicio or '',
+        'filtro_ano_fim': ano_fim or '',
+        'grand_total_avaliados': grand_total_avaliados,
+        'grand_total_previstos': grand_total_previstos,
+        'total_series_count': total_series_count,
+    })
 
 
 #Panel esfera ( estadual regional municipal) - ranking por localidade

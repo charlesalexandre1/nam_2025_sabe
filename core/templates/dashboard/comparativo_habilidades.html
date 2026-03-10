@@ -1,295 +1,233 @@
-<!-- dashboard/comparativo_habilidades.html -->
-
 {% extends 'base.html' %}
-{% load static %}
+{% load static %} {# Mantido, caso você use arquivos estáticos #}
 
 {% block content %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{# Removido chartjs-plugin-datalabels@2, pois não estava sendo usado no script #}
 
-<div class="row">
-    <div class="col-12">
-        <div class="page-title-box">
-            <h4 class="page-title">Comparativo de Habilidades</h4>
-        </div>
-    </div>
+{# Removido .row e .col-12 que não são do padrão de cards #}
+<div class="page-title-box no-print"> {# Adicionado no-print para ocultar na impressão #}
+    <h4 class="page-title">Comparativo de Habilidades</h4>
 </div>
 
 
 <!-- FILTROS -->
+<div class="card">
+    <div class="card-header" style="background: #f3f5f7; color: white;"> {# Cor de fundo primária #}
+        <h5 class="card-title mb-0 text-white">Filtros</h5>
+    </div>
 
-<div class="row">
-    <div class="col-12">
+    <div class="card-body">
+        <form method="GET" class="filter-form"> {# Aplicado filter-form #}
 
-        <div class="card">
-
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0 text-white">Filtros</h5>
+            <div>
+                <label for="esfera">Esfera:</label>
+                <select name="esfera" id="esfera">
+                    <option value="">Selecione</option>
+                    {% for e in esferas %}
+                    <option value="{{ e.id }}" {% if esfera_selecionada and esfera_selecionada.id == e.id %}selected{% endif %}>
+                        {{ e.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
 
-            <div class="card-body">
-
-                <form method="GET" class="form-inline align-items-end justify-content-between">
-
-                    <div class="form-group mb-2 flex-grow-1 mx-1">
-                        <label>Esfera:</label>
-                        <select name="esfera" class="form-control w-100">
-                            <option value="">Selecione</option>
-                            {% for e in esferas %}
-                            <option value="{{ e.id }}" {% if esfera_selecionada and esfera_selecionada.id == e.id %}selected{% endif %}>
-                                {{ e.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-2 flex-grow-1 mx-1">
-                        <label>Série:</label>
-                        <select name="serie" class="form-control w-100">
-                            <option value="">Todas</option>
-                            {% for s in series %}
-                            <option value="{{ s.id }}" {% if serie_selecionada == s.id %}selected{% endif %}>
-                                {{ s.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-2 flex-grow-1 mx-1">
-                        <label>Disciplina:</label>
-                        <select name="disciplina" class="form-control w-100">
-                            <option value="">Todas</option>
-                            {% for d in disciplinas %}
-                            <option value="{{ d.id }}" {% if disciplina_selecionada == d.id %}selected{% endif %}>
-                                {{ d.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-2 ml-2">
-                        <button type="submit" class="btn btn-primary mr-1">
-                            <i class="fas fa-filter"></i>
-                        </button>
-
-                        <a href="{% url 'comparativo_habilidades' %}" class="btn btn-secondary mr-1">
-                            <i class="fas fa-undo"></i>
-                        </a>
-
-                        <button type="button" onclick="window.print()" class="btn btn-dark">
-                            <i class="fas fa-print"></i>
-                        </button>
-                    </div>
-
-                </form>
-
+            <div>
+                <label for="serie">Série:</label>
+                <select name="serie" id="serie">
+                    <option value="">Todas</option>
+                    {% for s in series %}
+                    <option value="{{ s.id }}" {% if serie_selecionada == s.id %}selected{% endif %}>
+                        {{ s.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
-        </div>
 
+            <div>
+                <label for="disciplina">Disciplina:</label>
+                <select name="disciplina" id="disciplina">
+                    <option value="">Todas</option>
+                    {% for d in disciplinas %}
+                    <option value="{{ d.id }}" {% if disciplina_selecionada == d.id %}selected{% endif %}>
+                        {{ d.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:flex-end"> {# Agrupamento de botões #}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+
+              
+                
+            </div>
+
+        </form>
     </div>
 </div>
 
 
-
 {% if not esfera_selecionada %}
-<div class="alert alert-info">
-    Selecione uma esfera para visualizar os dados.
+<div class="card" style="background: #e0f7fa; border-color: #b2ebf2;"> {# Estilo de alerta info #}
+    <p class="text-muted" style="color: #f3f5f7;">Selecione uma esfera para visualizar os dados.</p>
 </div>
 {% endif %}
-
 
 
 {% if esfera_selecionada %}
 
 <!-- GRÁFICO PRINCIPAL (COM TOGGLE) -->
+<div class="card">
+    <div class="card-header" style="background: #d4d8dd; color: white; display: flex; justify-content: space-between; align-items: center;"> {# Cor de fundo primária #}
+        <h5 class="card-title mb-0 text-white">Comparativo por Habilidade e Ano</h5>
+        <span class="badge" style="background: #e9ecef; color: #1e293b; padding: 5px 10px; border-radius: 4px;">{{ tabela|length }} habilidades</span>
+    </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
+    <div class="card-body">
+        {% if tabela %}
 
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 text-white">Comparativo por Habilidade e Ano</h5>
-                <span class="badge badge-light">{{ tabela|length }} habilidades</span>
+        <div class="d-flex justify-content-end mb-2 no-print"> {# Adicionado no-print #}
+            <div class="btn-group" role="group" aria-label="Tipo de gráfico">
+                <button type="button" class="btn btn-outline-primary active" id="btnBar"
+                        onclick="mudarTipo('bar')">
+                    Barras
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="btnLine"
+                        onclick="mudarTipo('line')">
+                    Linhas
+                </button>
             </div>
-
-            <div class="card-body">
-                {% if tabela %}
-
-                <div class="d-flex justify-content-end mb-2">
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Tipo de gráfico">
-                        <button type="button" class="btn btn-outline-primary active" id="btnBar"
-                                onclick="mudarTipo('bar')">
-                            Barras
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" id="btnLine"
-                                onclick="mudarTipo('line')">
-                            Linhas
-                        </button>
-                    </div>
-                </div>
-
-                <div class="chart-container-principal">
-                    <canvas id="graficoComparativo"></canvas>
-                </div>
-
-                {% else %}
-                <div class="alert alert-warning">
-                    Nenhuma habilidade encontrada com os filtros selecionados.
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="card-footer text-muted bg-light">
-                Eixo X: Habilidades • Séries: Anos • Valores: Taxa de acerto (%)
-            </div>
-
         </div>
+
+        <div class="chart-container-principal">
+            <canvas id="graficoComparativo"></canvas>
+        </div>
+
+        {% else %}
+        <div class="card" style="background: #fff3e0; border-color: #ffe0b2;"> {# Estilo de alerta warning #}
+            <p class="text-muted" style="color: #ff9800;">Nenhuma habilidade encontrada com os filtros selecionados.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card-footer text-muted" style="background: #e9ecef;"> {# Cor de fundo do rodapé #}
+        Eixo X: Habilidades • Séries: Anos • Valores: Taxa de acerto (%)
     </div>
 </div>
 
 
+<!-- TABELA -->
+<div class="card">
+    <div class="card-header" style="background: #eeeff0; color: white; display: flex; justify-content: space-between; align-items: center;"> {# Cor de fundo primária #}
+        <h5 class="card-title mb-0 text-white">
+            Resultados por Habilidade
+        </h5>
 
-<!-- TABELA (MANTIDA) -->
+        <span class="badge" style="background: #e9ecef; color: #1e293b; padding: 5px 10px; border-radius: 4px;">
+            {{ tabela|length }} habilidades
+        </span>
+    </div>
 
-<div class="row">
-    <div class="col-12">
+    <div class="card-body">
+        {% if tabela %}
 
-        <div class="card">
+        <div class="table-wrapper">
+            <table class="table"> {# Removidas classes Bootstrap table-bordered, table-hover, table-sm #}
+                <thead>
+                    <tr>
+                        <th>Série</th>
+                        <th>Disciplina</th>
+                        <th>Código</th>
+                        <th>Descrição</th>
 
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 text-white">
-                    Resultados por Habilidade
-                </h5>
+                        {% for ano in anos %}
+                        <th class="text-center">{{ ano }}</th> {# Adicionado text-center #}
+                        {% endfor %}
+                    </tr>
+                </thead>
 
-                <span class="badge badge-light">
-                    {{ tabela|length }} habilidades
-                </span>
-            </div>
+                <tbody>
+                    {% for linha in tabela %}
+                    <tr>
+                        <td>{{ linha.serie }}</td>
+                        <td>{{ linha.disciplina }}</td>
+                        <td>
+                            <span class="codigo-hab">
+                                {{ linha.codigo }}
+                            </span>
+                        </td>
+                        <td class="descricao">
+                            {{ linha.descricao|truncatechars:90 }}
+                        </td>
 
-
-            <div class="card-body">
-
-                {% if tabela %}
-
-                <div class="table-wrapper">
-
-                    <table class="table table-bordered table-hover table-sm">
-
-                        <thead>
-                            <tr>
-                                <th>Série</th>
-                                <th>Disciplina</th>
-                                <th>Código</th>
-                                <th>Descrição</th>
-
-                                {% for ano in anos %}
-                                <th>{{ ano }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            {% for linha in tabela %}
-                            <tr>
-                                <td>{{ linha.serie }}</td>
-                                <td>{{ linha.disciplina }}</td>
-                                <td>
-                                    <span class="codigo-hab">
-                                        {{ linha.codigo }}
-                                    </span>
-                                </td>
-                                <td class="descricao">
-                                    {{ linha.descricao|truncatechars:90 }}
-                                </td>
-
-                                {% for item in linha.anos %}
-                                <td class="valor">
-
-                                    {% if item.tx_acerto is not None %}
-                                    <span class="
-                                        {% if item.tx_acerto >= 60 %}
-                                            tx-bom
-                                        {% elif item.tx_acerto >= 50 %}
-                                            tx-medio
-                                        {% else %}
-                                            tx-baixo
-                                        {% endif %}
-                                    ">
-                                        {{ item.tx_acerto|floatformat:1 }}%
-                                    </span>
-                                    {% else %}
-                                    <span class="tx-null">-</span>
-                                    {% endif %}
-
-                                </td>
-                                {% endfor %}
-                            </tr>
-                            {% endfor %}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-                {% else %}
-
-                <div class="alert alert-warning">
-                    Nenhuma habilidade encontrada com os filtros selecionados.
-                </div>
-
-                {% endif %}
-
-            </div>
-
-            <div class="card-footer text-muted bg-light">
-                Comparativo de taxas de acerto por ano
-            </div>
-
+                        {% for item in linha.anos %}
+                        <td class="valor text-center"> {# Adicionado text-center #}
+                            {% if item.tx_acerto is not None %}
+                            <span class="
+                                {% if item.tx_acerto >= 60 %}
+                                    tx-bom
+                                {% elif item.tx_acerto >= 50 %}
+                                    tx-medio
+                                {% else %}
+                                    tx-baixo
+                                {% endif %}
+                            ">
+                                {{ item.tx_acerto|floatformat:1 }}%
+                            </span>
+                            {% else %}
+                            <span class="tx-null">—</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
+        {% else %}
+        <div class="card" style="background: #fff3e0; border-color: #ffe0b2;"> {# Estilo de alerta warning #}
+            <p class="text-muted" style="color: #ff9800;">Nenhuma habilidade encontrada com os filtros selecionados.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card-footer text-muted" style="background: #e9ecef;"> {# Cor de fundo do rodapé #}
+        Comparativo de taxas de acerto por ano
     </div>
 </div>
 
 
-
-<!-- GRAFICOS INDIVIDUAIS (MANTIDOS) -->
-
-<div class="container mt-4">
-
-    <h4>Gráficos de Evolução por Habilidade</h4>
-
-    <div class="container-graficos">
-
-        {% for hab in dados_grafico %}
-
-        <div class="card-grafico">
-
-            <div class="titulo-hab">
-                Habilidade {{ hab.codigo }}
-            </div>
-
-            <div class="info-hab">
-                {{ hab.serie }} • {{ hab.disciplina }}
-            </div>
-
-            <canvas id="grafico{{ forloop.counter }}"></canvas>
-
-        </div>
-
-        {% endfor %}
-
+<!-- GRAFICOS INDIVIDUAIS -->
+<div class="card"> {# Envolvido em um card #}
+    <div class="card-header" style="background: #e8e9eb; color: white;"> {# Cor de fundo primária #}
+        <h5 class="card-title mb-0 text-white">Gráficos de Evolução por Habilidade</h5>
     </div>
-
+    <div class="card-body">
+        <div class="container-graficos">
+            {% for hab in dados_grafico %}
+            <div class="card-grafico">
+                <div class="titulo-hab">
+                    Habilidade {{ hab.codigo }}
+                </div>
+                <div class="info-hab">
+                    {{ hab.serie }} • {{ hab.disciplina }}
+                </div>
+                <canvas id="grafico{{ forloop.counter }}"></canvas>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 
 {% endif %}
 
 
-
 <!-- SCRIPT GRÁFICOS -->
-
 <script>
 const anos = {{ anos|safe }};
 
@@ -452,6 +390,8 @@ new Chart(
             datasets:[{
                 label:"Taxa de Acerto (%)",
                 data:dados{{ forloop.counter }},
+                backgroundColor: 'rgba(54, 162, 235, 0.7)', // Cor padrão para barras
+                borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth:1
             }]
         },
@@ -474,148 +414,272 @@ new Chart(
 </script>
 
 
-
 <style>
-/* tabela */
+    /* Estilos globais do seu padrão */
+    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-.table-wrapper{
-    width:100%;
-    overflow:visible;
-}
+    /* Estilos para os totalizadores (stats) - mantidos para consistência */
+    .stats { display: flex; gap: 20px; margin-bottom: 10px; }
+    .stat { flex: 1; text-align: center; }
+    .stat p { font-size: 2em; font-weight: bold; margin: 10px 0; color: #007bff; }
+    .stat small { color: #6c757d; font-size: 0.85em; }
 
-.table{
-    width:100%;
-    font-size:13px;
-    border-collapse:collapse;
-}
+    /* Estilos para a tabela */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 7px; border: 1px solid #dee2e6; text-align: left; }
+    th { background: #e9ecef; font-weight: 600; color: #1e293b; } /* Cor de fundo do cabeçalho da tabela e cor do texto */
 
-.table thead th{
-    background:#f1f3f5;
-    font-weight:600;
-    text-align:center;
-    border:1px solid #000;
-}
-
-.table td{
-    border:1px solid #000;
-    text-align:center;
-    vertical-align:middle;
-}
-
-.descricao{
-    text-align:left !important;
-}
-
-.codigo-hab{
-    text-align:left !important;
-}
-
-/* cores */
-
-.tx-bom{
-    color:#1e7e34;
-    font-weight:bold;
-}
-
-.tx-medio{
-    color:#e67e22;
-    font-weight:bold;
-}
-
-.tx-baixo{
-    color:#c05a2b;
-    font-weight:bold;
-}
-
-.tx-null{
-    color:#999;
-}
-
-/* GRÁFICO PRINCIPAL */
-
-.chart-container-principal{
-    position:relative;
-    width:100%;
-    height:420px;
-}
-
-/* GRAFICOS INDIVIDUAIS */
-
-.container-graficos{
-    width:100%;
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap:20px;
-    margin-top:20px;
-}
-
-.card-grafico{
-    background:white;
-    border-radius:8px;
-    padding:15px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.08);
-    border:1px solid #e5e5e5;
-}
-
-.titulo-hab{
-    font-size:16px;
-    font-weight:bold;
-    margin-bottom:5px;
-}
-
-.info-hab{
-    font-size:13px;
-    color:#666;
-    margin-bottom:10px;
-}
-
-canvas{
-    width:100% !important;
-    height:260px !important;
-}
-
-/* RESPONSIVO */
-
-@media (max-width:1200px){
-    .container-graficos{
-        grid-template-columns: repeat(2, 1fr);
+    /* Estilos para o formulário de filtro */
+    .filter-form { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+    .filter-form label {
+        font-size: 12px;
+        font-weight: bold;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
-}
-
-@media (max-width:768px){
-    .container-graficos{
-        grid-template-columns: 1fr;
+    .filter-form select,
+    .filter-form input[type="number"] {
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        min-width: 160px;
     }
+    .filter-form button { background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
+    .filter-form button:hover { background: #0056b3; }
+
+    /* Classes de utilidade */
+    .text-center { text-align: center; }
+    .text-muted { color: #6c757d; }
+    .small { font-size: 0.85em; }
+
+    /* Estilos para botões específicos */
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9em;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-primary:hover { background: #0056b3; }
+
+    .btn-secondary {
+        background: #6c757d; /* Cor cinza para secundário */
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9em;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-secondary:hover { background: #5a6268; }
+
+    .btn-dark {
+        background: #343a40; /* Cor escura para imprimir */
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9em;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-dark:hover { background: #23272b; }
+
+    .btn-outline-primary {
+        background: transparent;
+        color: #007bff;
+        border: 1px solid #007bff;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+    }
+    .btn-outline-primary:hover,
+    .btn-outline-primary.active {
+        background: #007bff;
+        color: white;
+    }
+    .btn-group {
+        display: inline-flex;
+        border-radius: 4px;
+    }
+    .btn-group .btn {
+        border-radius: 0;
+    }
+    .btn-group .btn:first-child {
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+    }
+    .btn-group .btn:last-child {
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+    }
+
+
+    /* Estilos para alertas */
+    .alert {
+        padding: 15px;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+    }
+
+
+    /* GRÁFICO PRINCIPAL */
     .chart-container-principal{
-        height:320px;
-    }
-}
-
-/* IMPRESSÃO */
-
-@media print{
-    .page-title-box,
-    .card-header,
-    .form-group,
-    .btn,
-    .card-footer,
-    nav,
-    .sidebar{
-        display:none !important;
+        position:relative;
+        width:100%;
+        height:420px;
     }
 
-    .table{
-        font-size:11px;
-    }
-
+    /* GRAFICOS INDIVIDUAIS */
     .container-graficos{
-        grid-template-columns: repeat(2, 1fr);
+        width:100%;
+        display:grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap:20px;
+        margin-top:20px;
     }
 
-    .chart-container-principal{
-        height:300px;
+    .card-grafico{
+        background:white;
+        border-radius:8px;
+        padding:15px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.08);
+        border:1px solid #e5e5e5;
     }
-}
+
+    .titulo-hab{
+        font-size:16px;
+        font-weight:bold;
+        margin-bottom:5px;
+    }
+
+    .info-hab{
+        font-size:13px;
+        color:#666;
+        margin-bottom:10px;
+    }
+
+    canvas{
+        width:100% !important;
+        height:260px !important;
+    }
+
+    /* Cores de status de taxa de acerto */
+    .tx-bom{ color:#1e7e34; font-weight:bold; }
+    .tx-medio{ color:#e67e22; font-weight:bold; }
+    .tx-baixo{ color:#c05a2b; font-weight:bold; }
+    .tx-null{ color:#999; }
+
+    /* RESPONSIVO */
+    @media (max-width:1200px){
+        .container-graficos{
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width:768px){
+        .container-graficos{
+            grid-template-columns: 1fr;
+        }
+        .chart-container-principal{
+            height:320px;
+        }
+        .filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-form > div {
+            width: 100%;
+        }
+        .filter-form > div:last-child { /* Botões */
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .filter-form button, .filter-form a.btn {
+            width: 100%;
+        }
+    }
+
+    /* IMPRESSÃO */
+    @media print{
+        .page-title-box,
+        .card-header,
+        .form-group, /* Removido, pois filter-form já é ocultado */
+        .btn, /* Removido, pois no-print já é aplicado */
+        .card-footer,
+        nav,
+        .sidebar{
+            display:none !important;
+        }
+
+        .table{
+            font-size:11px;
+        }
+
+        .container-graficos{
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .chart-container-principal{
+            height:300px;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+            margin-bottom: 10px !important;
+        }
+        .card-header {
+            background: #e9ecef !important;
+            color: #1e293b !important;
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+        .card-title {
+            color: #1e293b !important;
+        }
+        .badge {
+            background: #f8f9fa !important;
+            color: #6c757d !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        table th {
+            background: #e9ecef !important;
+            color: #1e293b !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        table td {
+            border: 1px solid #dee2e6 !important;
+        }
+    }
 </style>
 
 {% endblock %}
