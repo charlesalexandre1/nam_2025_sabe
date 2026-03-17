@@ -6,89 +6,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
-<style>
-/* Impressão */
-@media print {
-    * {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        box-shadow: none !important;
-        text-shadow: none !important;
-    }
+<!-- ================= FILTROS ================= -->
+<div class="card no-print">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background: #d4d8dd;">
 
-    body {
-        background: #fff;
-        font-size: 8pt;
-        margin: 0;
-        padding: 0;
-    }
-
-    .sidebar,
-    .header,
-    .filter-form,
-    .filter-form button,
-    .no-print {
-        display: none !important;
-    }
-
-    .layout { display: block !important; }
-
-    .main {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .content {
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-    }
-
-    .card {
-        box-shadow: none !important;
-        border: 1px solid #dee2e6 !important;
-        margin-bottom: 10px !important;
-    }
-
-    .card-header {
-        background: #e9ecef !important;
-        color: #1e293b !important;
-        border-bottom: 1px solid #dee2e6 !important;
-    }
-
-    .card-title {
-        color: #1e293b !important;
-    }
-
-    table {
-        font-size: 10px !important;
-        page-break-inside: auto;
-    }
-
-    th, td {
-        padding: 3px 4px !important;
-    }
-
-    thead { display: table-header-group; }
-    tr { page-break-inside: avoid; page-break-after: auto; }
-
-    .chart-container-principal {
-        height: 220px !important; /* Altura para impressão */
-    }
-}
-</style>
-
-<!-- Filtros -->
-<div class="card">
-    <div class="card-header" style="background: #f3f5f7; color: white;">
         <h5 class="card-title mb-0 text-white">Filtros</h5>
+
+        <!-- BOTÃO HABILIDADES (ADICIONADO) -->
+        <a href="{% url 'comparativo_habilidades' %}" class="btn btn-secondary btn-sm">
+            Habilidades
+        </a>
     </div>
+
     <div class="card-body">
-        <form method="get" class="filter-form">
+        <form method="get" class="filter-form d-flex gap-2 align-items-end">
+
             <div>
-                <label for="disciplina">Disciplina:</label>
-                <select name="disciplina" id="disciplina">
+                <label>Disciplina</label>
+                <select name="disciplina">
                     {% for disc in todas_disciplinas %}
                         <option value="{{ disc.id }}" {% if disc.id == disciplina.id %}selected{% endif %}>
                             {{ disc.nome }}
@@ -96,9 +32,10 @@
                     {% endfor %}
                 </select>
             </div>
+
             <div>
-                <label for="serie">Série/Ano:</label>
-                <select name="serie" id="serie">
+                <label>Série</label>
+                <select name="serie">
                     {% for s in todas_series %}
                         <option value="{{ s.id }}" {% if s.id == serie.id %}selected{% endif %}>
                             {{ s.nome }}
@@ -106,90 +43,91 @@
                     {% endfor %}
                 </select>
             </div>
-            <div style="display:flex; gap:8px; align-items:flex-end">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter"></i> Filtrar
-                </button>
-                <a href="{% url 'comparativo_habilidades' %}" class="btn btn-secondary">
-                    <i class="fas fa-undo"></i> Habilidades
-                </a>
-            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Filtrar
+            </button>
+
         </form>
     </div>
 </div>
 
-<!-- Tabela comparativa (esferas x anos) -->
+<!-- ================= TABELA ================= -->
 <div class="card">
-    <div class="card-header" style="background: #d4d8dd; color: white;">
-        <h5 class="card-title mb-0 text-white">Proficiência Média por Esfera e Ano (Tabela)</h5>
+    <div class="card-header" style="background:#d4d8dd;">
+        <h5 class="card-title mb-0 text-white">
+            Proficiência Média por Esfera e Ano (Tabela)
+        </h5>
     </div>
+
     <div class="card-body">
-        <p>
-            <strong>Disciplina:</strong> {{ disciplina.nome }} |
-            <strong>Série:</strong> {{ serie.nome }}
-        </p>
         {% if anos %}
-            <div class="table-wrapper">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Esfera</th>
-                            {% for ano in anos %}
-                                <th class="text-center">{{ ano }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for esfera in esferas %}
-                        <tr>
-                            <td><strong>{{ esfera.nome }}</strong></td>
-                            {% for ano in anos %}
-                                {% with desempenho=matriz|dict_key:esfera.id|dict_key:ano %}
-                                    <td class="{% if desempenho %}text-center{% else %}text-muted text-center{% endif %}">
-                                        {% if desempenho %}
-                                            {{ desempenho.proficiencia_media|floatformat:1 }}
-                                            <span class="small">({{ desempenho.alunos_avaliados }} alunos)</span>
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                {% endwith %}
-                            {% endfor %}
-                        </tr>
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Esfera</th>
+                        {% for ano in anos %}
+                            <th class="text-center">{{ ano }}</th>
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for esfera in esferas %}
+                    <tr>
+                        <td><strong>{{ esfera.nome }}</strong></td>
+                        {% for ano in anos %}
+                            {% with d=matriz|dict_key:esfera.id|dict_key:ano %}
+                            <td class="text-center">
+                                {% if d %}
+                                    {{ d.proficiencia_media|floatformat:1 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-            <p class="text-muted">Nenhum dado disponível para os filtros selecionados.</p>
+            <p class="text-muted">Nenhum dado disponível.</p>
         {% endif %}
     </div>
 </div>
 
 {% if anos %}
-<!-- GRÁFICO PRINCIPAL (Esfera x Ano) -->
+<!-- ================= GRÁFICO ================= -->
 <div class="card">
-    <div class="card-header" style="background: #d4d8dd; color: white; display:flex; justify-content:space-between; align-items:center;">
-        <h5 class="card-title mb-0 text-white">Proficiência Média por Esfera e Ano (Gráfico)</h5>
-        <span class="badge" style="background: #e9ecef; color: #1e293b; padding: 5px 10px; border-radius: 4px;">
+
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background:#d4d8dd;">
+
+        <h5 class="card-title mb-0 text-white">
+            Proficiência Média por Esfera e Ano
+        </h5>
+
+        <span class="badge"
+              style="background:#e9ecef; color:#1e293b;">
             {{ esferas|length }} esferas
         </span>
     </div>
-    <div class="card-body">
-        <p>
-            <strong>Disciplina:</strong> {{ disciplina.nome }} |
-            <strong>Série:</strong> {{ serie.nome }}
-        </p>
 
-        <!-- Toggle barras/linhas -->
+    <div class="card-body">
+
+        <!-- TOGGLE -->
         <div class="d-flex justify-content-end mb-2 no-print">
-            <div class="btn-group" role="group" aria-label="Tipo de gráfico">
-                <button type="button" class="btn btn-outline-primary active" id="btnBarEsfera"
-                        onclick="mudarTipoEsfera('bar')">
+            <div class="btn-group">
+                <button class="btn btn-outline-primary active"
+                        id="btnBar"
+                        onclick="mudarTipo('graficoEsferas','bar')">
                     Barras
                 </button>
-                <button type="button" class="btn btn-outline-primary" id="btnLineEsfera"
-                        onclick="mudarTipoEsfera('line')">
+                <button class="btn btn-outline-primary"
+                        id="btnLine"
+                        onclick="mudarTipo('graficoEsferas','line')">
                     Linhas
                 </button>
             </div>
@@ -198,310 +136,180 @@
         <div class="chart-container-principal">
             <canvas id="graficoEsferas"></canvas>
         </div>
+
     </div>
+
     <div class="card-footer text-muted" style="background:#e9ecef;">
-        Eixo X: Anos • Séries: Esferas • Valores: Proficiência Média
+        Eixo X: Anos • Séries: Esferas • Valores: Proficiência Média (%)
     </div>
+
 </div>
 {% endif %}
 
 {% if ranking %}
+<!-- ================= RANKING ================= -->
 <div class="card">
-    <h3>🏆 Ranking das Esferas em {{ ultimo_ano }}</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Posição</th>
-                <th>Esfera</th>
-                <th class="text-center">Proficiência Média</th>
-                <th class="text-center">Alunos Avaliados</th>
-                <th class="text-center">% Abaixo do Básico+Básico</th>
-                <th class="text-center">% Adequado+Avançado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in ranking %}
-            <tr>
-                <td class="text-center">{{ forloop.counter }}</td>
-                <td>{{ item.esfera.nome }}</td>
-                <td class="text-center">{{ item.proficiencia_media|floatformat:1 }}</td>
-                <td class="text-center">{{ item.alunos_avaliados }}</td>
-                <td class="text-center">{{ item.soma_ab|floatformat:1 }}%</td>
-                <td class="text-center">{{ item.soma_aa|floatformat:1 }}%</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background:#d4d8dd;">
+
+        <h5 class="card-title mb-0 text-white">
+            🏆 Ranking das Esferas ({{ ultimo_ano }})
+        </h5>
+
+        <span class="badge"
+              style="background:#e9ecef; color:#1e293b;">
+            {{ ranking|length }} posições
+        </span>
+    </div>
+
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Esfera</th>
+                    <th>Proficiência</th>
+                    <th>Alunos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in ranking %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.esfera.nome }}</td>
+                    <td>{{ item.proficiencia_media|floatformat:1 }}</td>
+                    <td>{{ item.alunos_avaliados }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-footer text-muted" style="background:#e9ecef;">
+        Ranking baseado no último ano disponível.
+    </div>
 </div>
 {% endif %}
 
-<div class="card" style="background: #e9ecef;">
-    <p class="text-muted">
-        * Os valores representam a proficiência média por esfera. Use os filtros para alterar disciplina e série.
-    </p>
-</div>
-
 {% if anos %}
 <script>
-// ==== Dados para o gráfico de Esferas x Ano ====
-
-// anos: [2021, 2022, ...]
-const anosEsf = [{% for ano in anos %}{{ ano }}{% if not forloop.last %},{% endif %}{% endfor %}];
-
-// esferas: [{id, nome}, ...]
-const esferasEsf = [
-    {% for esfera in esferas %}
-    { id: {{ esfera.id }}, nome: "{{ esfera.nome }}" }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-];
-
-// matriz: esfera_id -> ano -> proficiência (ou null)
-const matrizEsf = {
-    {% for esfera in esferas %}
-    {{ esfera.id }}: {
-        {% for ano in anos %}
-        {{ ano }}: {% with desempenho=matriz|dict_key:esfera.id|dict_key:ano %}
-                       {% if desempenho %}{{ desempenho.proficiencia_media|stringformat:"f" }}{% else %}null{% endif %}
-                   {% endwith %}{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-};
-
 Chart.register(ChartDataLabels);
 
-// Chart.js defaults
-Chart.defaults.font.family = "'Arial', system-ui, sans-serif";
-Chart.defaults.font.size = 9; /* Mantido em 9 */
-Chart.defaults.color = '#444';
-Chart.defaults.plugins.tooltip.padding = 5; /* Mantido em 5 */
-Chart.defaults.plugins.tooltip.cornerRadius = 3; /* Mantido em 3 */
+const anos = [{% for ano in anos %}{{ ano }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
-// Paleta simples mas bem contrastante (boa para tela e impressão)
-const paletaEsf = [
-    { bg: 'rgba(54,  162, 235, 0.7)', border: 'rgba(54,  162, 235, 1)' }, // Azul
-    { bg: 'rgba(255, 99,  132, 0.7)', border: 'rgba(255, 99,  132, 1)' }, // Vermelho
-    { bg: 'rgba(75,  192, 192, 0.7)', border: 'rgba(75,  192, 192, 1)' }, // Verde Água
-    { bg: 'rgba(255, 159,  64, 0.7)', border: 'rgba(255, 159,  64, 1)' }, // Laranja
-    { bg: 'rgba(153, 102, 255, 0.7)', border: 'rgba(153, 102, 255, 1)' }, // Roxo
-    { bg: 'rgba(201, 203, 207, 0.7)', border: 'rgba(201, 203, 207, 1)' }, // Cinza
-    { bg: 'rgba(46, 204, 113, 0.7)',  border: 'rgba(46, 204, 113, 1)' },  // Verde
-    { bg: 'rgba(231, 76, 60, 0.7)',   border: 'rgba(231, 76, 60, 1)' },   // Vermelho escuro
+const datasets = [
+{% for esfera in esferas %}
+{
+    label: "{{ esfera.nome }}",
+    data: [
+        {% for ano in anos %}
+        {% with d=matriz|dict_key:esfera.id|dict_key:ano %}
+        {% if d %}{{ d.proficiencia_media|stringformat:"f" }}{% else %}null{% endif %}
+        {% endwith %}
+        {% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    borderWidth: 1.2,
+    tension: 0.3
+},
+{% endfor %}
 ];
 
-function buildDatasetsEsf(tipo) {
-    return esferasEsf.map((esf, idx) => {
-        const cor = paletaEsf[idx % paletaEsf.length];
-        return {
-            label: esf.nome,
-            data: anosEsf.map(a => matrizEsf[esf.id][a]),
-            backgroundColor: tipo === 'bar' ? cor.bg : 'transparent',
-            borderColor: cor.border,
-            borderWidth: 1.2, /* Reduzido de 1.5 para 1.2 */
-            pointRadius: 1.2, /* Reduzido de 1.5 para 1.2 */
-            pointHoverRadius: 2.5, /* Reduzido de 3 para 2.5 */
-            fill: false,
-            tension: 0.25
-        };
-    });
-}
+const ctx = document.getElementById('graficoEsferas');
 
-function getOpcoesEsf(tipo) {
-    return {
+let grafico = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: anos, datasets: datasets },
+    options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
         plugins: {
             legend: {
-                display: true,
                 position: 'top',
-                labels: {
-                    font: { size: 7 }, /* Mantido em 7 */
-                    boxWidth: 7, /* Mantido em 7 */
-                    usePointStyle: true,
-                    padding: 6 /* Reduzido de 8 para 6 */
-                }
+                labels: { font: { size: 8 } }
             },
-            tooltip: {
-                callbacks: {
-                    label: ctx => {
-                        const v = ctx.raw;
-                        return ' ' + ctx.dataset.label + ': ' +
-                               (v !== null ? parseFloat(v).toFixed(1) : '—');
-                    }
-                }
-            },
-            datalabels: tipo === 'bar' ? {
+            datalabels: {
                 anchor: 'end',
                 align: 'end',
-                color: '#222',
-                font: { size: 6, weight: 'bold' }, /* Mantido em 6 */
-                formatter: v => v !== null ? parseFloat(v).toFixed(1) : ''
-            } : {
-                display: false
-            }
-        },
-        scales: {
-            x: {
-                title: { display: true, text: 'Ano', font: { size: 7 } }, /* Reduzido de 8 para 7 */
-                grid: { color: '#eee' },
-                categoryPercentage: 0.5, /* Reduzido de 0.6 para 0.5 para barras mais finas */
-                barPercentage: 0.6, /* Reduzido de 0.7 para 0.6 para barras mais finas */
-                ticks: { font: { size: 6 } } /* Reduzido de 7 para 6 */
-            },
-            y: {
-                beginAtZero: false,
-                title: { display: true, text: 'Proficiência Média', font: { size: 7 } }, /* Reduzido de 8 para 7 */
-                grid: { color: '#eee' },
-                ticks: { callback: v => parseFloat(v).toFixed(0), font: { size: 6 } } /* Reduzido de 7 para 6 */
+                font: { size: 8 },
+                formatter: v => v ? v.toFixed(1) : ''
             }
         }
-    };
-}
-
-let tipoAtualEsf = 'bar';
-const ctxEsf = document.getElementById('graficoEsferas');
-let graficoEsf = new Chart(ctxEsf, {
-    type: tipoAtualEsf,
-    data: { labels: anosEsf, datasets: buildDatasetsEsf(tipoAtualEsf) },
-    options: getOpcoesEsf(tipoAtualEsf)
+    }
 });
 
-function mudarTipoEsfera(novoTipo) {
-    if (novoTipo === tipoAtualEsf) return;
+function mudarTipo(id, tipo) {
+    const chart = Chart.getChart(id);
+    if (!chart) return;
 
-    tipoAtualEsf = novoTipo;
-    graficoEsf.destroy();
-    graficoEsf = new Chart(ctxEsf, {
-        type: tipoAtualEsf,
-        data: {
-            labels: anosEsf,
-            datasets: buildDatasetsEsf(tipoAtualEsf)
-        },
-        options: getOpcoesEsf(tipoAtualEsf)
-    });
+    chart.config.type = tipo;
+    chart.update();
 
-    const btnBar  = document.getElementById('btnBarEsfera');
-    const btnLine = document.getElementById('btnLineEsfera');
-    if (tipoAtualEsf === 'bar') {
-        btnBar.classList.add('active');
-        btnLine.classList.remove('active');
-    } else {
-        btnLine.classList.add('active');
-        btnBar.classList.remove('active');
-    }
+    document.getElementById('btnBar').classList.toggle('active', tipo === 'bar');
+    document.getElementById('btnLine').classList.toggle('active', tipo === 'line');
 }
+
+window.onbeforeprint = () => {
+    grafico.resize(800, 180);
+};
 </script>
 {% endif %}
 
 <style>
-    /* Estilos globais do seu padrão */
-    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; }
-    /* Ajuste no max-width do container para dar mais espaço */
-    .container { max-width: 1200px; margin: 0 auto; padding: 10px; } /* Reduzido de 1300px para 1200px e padding de 15px para 10px */
-    .card { background: white; border-radius: 8px; padding: 15px; margin: 8px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } /* Padding e margin do card reduzidos */
-    .table-wrapper{ width:100%; overflow:auto; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; } /* Margin da tabela reduzida */
-    th, td { padding: 6px; border: 1px solid #dee2e6; text-align: left; font-size: 0.8em; } /* Padding e font-size da tabela reduzidos */
-    th { background: #e9ecef; font-weight: 600; color: #1e293b; }
-    .filter-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; } /* Gap reduzido */
-    .filter-form label {
-        font-size: 11px; /* Reduzido de 12px para 11px */
-        font-weight: bold;
-        display: flex;
-        flex-direction: column;
-        gap: 3px; /* Reduzido de 4px para 3px */
-    }
-    .filter-form select {
-        padding: 7px; /* Reduzido de 8px para 7px */
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        min-width: 140px; /* Reduzido de 160px para 140px */
-    }
-    .filter-form button { background: #007bff; color: white; border: none; padding: 7px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85em; } /* Padding e font-size do botão reduzidos */
-    .filter-form button:hover { background: #0056b3; }
-    .text-center { text-align: center; }
-    .text-muted { color: #6c757d; }
-    .small { font-size: 0.75em; } /* Reduzido de 0.85em para 0.75em */
+body { background:#f8f9fa; font-family:Arial; }
 
-    .btn-primary {
-        background: #007bff;
-        color: white;
-        padding: 7px 14px; /* Reduzido */
-        border-radius: 4px;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 0.8em; /* Reduzido */
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-    }
-    .btn-primary:hover { background: #0056b3; }
+.card {
+    background:white;
+    border-radius:8px;
+    padding:15px;
+    margin:10px 0;
+    box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
 
-    .btn-secondary {
-        background: #6c757d;
-        color: white;
-        padding: 7px 14px; /* Reduzido */
-        border-radius: 4px;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 0.8em; /* Reduzido */
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-    }
-    .btn-secondary:hover { background: #5a6268; }
+.table { width:100%; border-collapse:collapse; }
+th,td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
 
-    .btn-outline-primary {
-        background: transparent;
-        color: #007bff;
-        border: 1px solid #007bff;
-        padding: 5px 10px; /* Reduzido */
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.75em; /* Reduzido */
-    }
-    .btn-outline-primary:hover,
-    .btn-outline-primary.active {
-        background: #007bff;
-        color: white;
-    }
-    .btn-group {
-        display: inline-flex;
-        border-radius: 4px;
-    }
-    .btn-group .btn { border-radius: 0; }
-    .btn-group .btn:first-child {
-        border-top-left-radius: 4px;
-        border-bottom-left-radius: 4px;
-    }
-    .btn-group .btn:last-child {
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
+.chart-container-principal {
+    height:280px;
+}
+
+/* ================= IMPRESSÃO ================= */
+@media print {
+
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
     }
 
-    .chart-container-principal{
-        position:relative;
-        width:100%;
-        height:280px; /* Reduzido de 300px para 280px */
+    .no-print,
+    .btn,
+    select {
+        display:none !important;
     }
 
-    @media (max-width:1400px) {
-        .container { max-width: 1100px; padding: 10px; } /* Ajuste para telas maiores */
+    body { background:#fff; font-size:9pt; }
+
+    .card {
+        page-break-inside: avoid;
+        border:1px solid #ccc;
     }
-    @media (max-width:1200px) {
-        .container { max-width: 100%; padding: 10px; }
-        .filter-form select { min-width: 100px; } /* Reduzido para caber mais itens */
+
+    .chart-container-principal {
+        height:180px !important;
+        max-height:180px !important;
+        overflow:hidden !important;
     }
-    @media (max-width:768px){
-        .chart-container-principal{ height:220px; } /* Reduzido para mobile */
-        .filter-form {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .filter-form > div { width: 100%; }
-        .filter-form button, .filter-form a.btn { width: 100%; }
+
+    canvas {
+        width:100% !important;
+        height:180px !important;
+        max-height:180px !important;
     }
+
+    table { font-size:9px; }
+
+    thead { display: table-header-group; }
+}
 </style>
 
 {% endblock %}
