@@ -1198,17 +1198,140 @@ def relatorio_escolas_participantes(request):
 
 
 #Panel esfera ( estadual regional municipal) - ranking por localidade
-
 from django.shortcuts import render
 from django.db.models import Avg, Sum
 from .models import Esfera, Disciplina, Serie, DesempenhoEsfera
 
+
+# -------------------------------------------------------------------
+# Padrões de Desempenho SAEB 2024
+# Estrutura: { (nome_disciplina, nome_serie): [ (nivel, li, ls), ... ] }
+# li = limite inferior (None = sem limite inferior)
+# ls = limite superior (None = sem limite superior)
+# -------------------------------------------------------------------
+PADROES_SAEB_2024 = {
+    # ATENÇÃO: As chaves foram ajustadas para 'LP' e 'MT' e as séries para '2º ano', '5º ano', '9º ano', '3ª série'
+    # conforme o debug que você forneceu.
+
+    # Escala 750,50 - 2º ano (LP e MT iguais)
+    ('LP', '2º ano'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  699.99),
+        ('Básico',           700,   749.99),
+        ('Adequado',         750,   799.99),
+        ('Avançado',         800,   None),
+    ],
+    ('MT', '2º ano'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  699.99),
+        ('Básico',           700,   749.99),
+        ('Adequado',         750,   799.99),
+        ('Avançado',         800,   None),
+    ],
+
+    # Escala 250,50 - Língua Portuguesa
+    ('LP', '5º ano'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  150),
+        ('Básico',           151,   200),
+        ('Adequado',         201,   250),
+        ('Avançado',         251,   None),
+    ],
+    ('LP', '9º ano'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  200),
+        ('Básico',           201,   275),
+        ('Adequado',         276,   325),
+        ('Avançado',         326,   None),
+    ],
+    ('LP', '3ª série'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  250),
+        ('Básico',           251,   300),
+        ('Adequado',         301,   375),
+        ('Avançado',         376,   None),
+    ],
+
+    # Escala 250,50 - Matemática
+    ('MT', '5º ano'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  175),
+        ('Básico',           176,   225),
+        ('Adequado',         226,   275),
+        ('Avançado',         276,   None),
+    ],
+    ('MT', '9º ano'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  225),
+        ('Básico',           226,   300),
+        ('Adequado',         301,   350),
+        ('Avançado',         351,   None),
+    ],
+    ('MT', '3ª série'): [ # <-- AJUSTADO AQUI
+        ('Abaixo do Básico', None,  275),
+        ('Básico',           276,   350),
+        ('Adequado',         351,   400),
+        ('Avançado',         401,   None),
+    ],
+}
+
+# Cores associadas a cada nível (útil no template via badge)
+CORES_NIVEL = {
+    'Abaixo do Básico': 'danger',
+    'Básico':           'warning',
+    'Adequado':         'info',
+    'Avançado':         'success',
+}
+
+
+def classificar_nivel(disciplina_nome, serie_nome, proficiencia):
+    """
+    Retorna um dict com 'nivel' e 'cor' para o valor de proficiência
+    informado, com base nos padrões SAEB 2024.
+    Retorna None se não houver padrão cadastrado para a combinação.
+    """
+    # Os prints de debug podem ser removidos depois que tudo estiver funcionando
+    # print(f"\n--- DEBUG CLASSIFICAR NÍVEL ---")
+    # print(f"Recebido: Disciplina='{disciplina_nome}', Série='{serie_nome}', Proficiência={proficiencia}")
+
+    if proficiencia is None:
+        # print(f"DEBUG: Proficiência é None, retornando None.")
+        return None
+
+    # Usaremos os nomes EXATOS que vêm do banco para a busca no dicionário
+    # (Removendo .strip() e .title() para usar os nomes brutos do banco, que agora batem com o dicionário)
+    disciplina_chave = disciplina_nome.strip()
+    serie_chave = serie_nome.strip()
+
+    # print(f"DEBUG: Tentando buscar padrão para a chave: ('{disciplina_chave}', '{serie_chave}')")
+
+    faixas = PADROES_SAEB_2024.get((disciplina_chave, serie_chave))
+
+    if not faixas:
+        # print(f"DEBUG: Padrão NÃO encontrado no dicionário para a chave: ('{disciplina_chave}', '{serie_chave}')")
+        # print(f"DEBUG: Chaves disponíveis no dicionário PADROES_SAEB_2024: {PADROES_SAEB_2024.keys()}")
+        return None
+
+    # print(f"DEBUG: Padrão ENCONTRADO para a chave: ('{disciplina_chave}', '{serie_chave}')")
+    # print(f"DEBUG: Faixas para esta combinação: {faixas}")
+
+    for nivel, li, ls in faixas:
+        # Verifica se a proficiência está dentro da faixa
+        if li is None and ls is not None: # Menor ou igual a LS
+            if proficiencia <= ls:
+                # print(f"DEBUG: Proficiência {proficiencia} está em '{nivel}' (<= {ls})")
+                return {'nivel': nivel, 'cor': CORES_NIVEL.get(nivel, 'secondary')}
+        elif li is not None and ls is None: # Maior ou igual a LI
+            if proficiencia >= li:
+                # print(f"DEBUG: Proficiência {proficiencia} está em '{nivel}' (>= {li})")
+                return {'nivel': nivel, 'cor': CORES_NIVEL.get(nivel, 'secondary')}
+        elif li is not None and ls is not None: # Entre LI e LS (inclusive)
+            if li <= proficiencia <= ls:
+                # print(f"DEBUG: Proficiência {proficiencia} está em '{nivel}' ({li} <= x <= {ls})")
+                return {'nivel': nivel, 'cor': CORES_NIVEL.get(nivel, 'secondary')}
+
+    # Se a proficiência não se encaixar em nenhuma faixa (ex: fora dos limites definidos)
+    # print(f"DEBUG: Proficiência {proficiencia} NÃO se encaixou em NENHUMA faixa para Disciplina='{disciplina_chave}', Série='{serie_chave}'")
+    return None
+
+
 def painel_esferas(request):
-    # Filtros recebidos via GET (opcionais)
     disciplina_id = request.GET.get('disciplina')
     serie_id = request.GET.get('serie')
 
-    # Se não informado, usa o primeiro disponível (ou None)
     disciplina = None
     serie = None
     if disciplina_id:
@@ -1222,52 +1345,75 @@ def painel_esferas(request):
         except Serie.DoesNotExist:
             pass
 
-    # Se ainda não definidos, pega o primeiro registro (para exibir algo)
     if not disciplina:
         disciplina = Disciplina.objects.first()
     if not serie:
         serie = Serie.objects.first()
 
-    # Busca todos os desempenhos para a disciplina/série selecionada
+    # Garante que temos disciplina e série para continuar
+    if not disciplina or not serie:
+        context = {
+            'todas_disciplinas': Disciplina.objects.all(),
+            'todas_series': Serie.objects.all(),
+            'disciplina': None,
+            'serie': None,
+            'anos': [], 'esferas': [], 'matriz': {},
+            'total_esferas': 0, 'total_desempenhos': 0,
+            'ultimo_ano': None, 'ranking': [], 'evolucao': [],
+        }
+        return render(request, 'dashboard/painel_esferas.html', context)
+
+
     desempenhos = DesempenhoEsfera.objects.filter(
         disciplina=disciplina,
         serie=serie
     ).select_related('esfera').order_by('ano', 'esfera__nome')
 
-    # Organiza dados para tabela comparativa
     anos = sorted(set(d.ano for d in desempenhos))
     esferas = Esfera.objects.all().order_by('nome')
 
     # Matriz: [esfera][ano] = desempenho ou None
+    # Já enriquecemos cada desempenho com o padrão SAEB
     matriz = {}
     for esfera in esferas:
         matriz[esfera.id] = {ano: None for ano in anos}
 
     for d in desempenhos:
+        d.padrao_saeb = classificar_nivel(
+            disciplina.nome,
+            serie.nome,
+            d.proficiencia_media
+        )
         matriz[d.esfera_id][d.ano] = d
 
-    # Estatísticas gerais
     total_esferas = Esfera.objects.count()
     total_desempenhos = DesempenhoEsfera.objects.count()
-    anos_disponiveis = DesempenhoEsfera.objects.values_list('ano', flat=True).distinct().order_by('-ano')
+    anos_disponiveis = (
+        DesempenhoEsfera.objects
+        .values_list('ano', flat=True)
+        .distinct()
+        .order_by('-ano')
+    )
     ultimo_ano = anos_disponiveis.first() if anos_disponiveis else None
 
-    # Ranking das esferas no último ano (para a disciplina/série selecionada)
-    # Ranking das esferas no último ano (para a disciplina/série selecionada)
     ranking = []
     if ultimo_ano:
         desempenhos_ranking = DesempenhoEsfera.objects.filter(
-        ano=ultimo_ano,
-        disciplina=disciplina,
-        serie=serie
-    ).select_related('esfera').order_by('-proficiencia_media')[:10]
+            ano=ultimo_ano,
+            disciplina=disciplina,
+            serie=serie
+        ).select_related('esfera').order_by('-proficiencia_media')[:10]
 
-    for item in desempenhos_ranking:
-        # Calcula os somatórios com precisão decimal
-        item.soma_ab = item.abaixo_basico + item.basico
-        item.soma_aa = item.adequado + item.avancado
-        ranking.append(item)
-    # Evolução por ano (média de proficiência, total de alunos avaliados)
+        for item in desempenhos_ranking:
+            item.soma_ab = item.abaixo_basico + item.basico
+            item.soma_aa = item.adequado + item.avancado
+            item.padrao_saeb = classificar_nivel(
+                disciplina.nome,
+                serie.nome,
+                item.proficiencia_media
+            )
+            ranking.append(item)
+
     evolucao = DesempenhoEsfera.objects.filter(
         disciplina=disciplina,
         serie=serie
@@ -1276,7 +1422,16 @@ def painel_esferas(request):
         total_avaliados=Sum('alunos_avaliados')
     ).order_by('ano')
 
-    # Listas para os filtros
+    # Classifica também cada ponto da evolução
+    evolucao_com_padrao = []
+    for ponto in evolucao:
+        ponto['padrao_saeb'] = classificar_nivel(
+            disciplina.nome,
+            serie.nome,
+            ponto['media_proficiencia']
+        )
+        evolucao_com_padrao.append(ponto)
+
     todas_disciplinas = Disciplina.objects.all()
     todas_series = Serie.objects.all()
 
@@ -1292,11 +1447,9 @@ def painel_esferas(request):
         'total_desempenhos': total_desempenhos,
         'ultimo_ano': ultimo_ano,
         'ranking': ranking,
-        'evolucao': evolucao,
+        'evolucao': evolucao_com_padrao,
     }
     return render(request, 'dashboard/painel_esferas.html', context)
-
-
     # analise das habilidades por esfera - 04_03_2026
 
 from django.shortcuts import render, get_object_or_404

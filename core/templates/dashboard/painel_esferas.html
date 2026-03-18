@@ -8,22 +8,13 @@
 
 <!-- ================= FILTROS ================= -->
 <div class="card no-print">
-    <div class="card-header d-flex justify-content-between align-items-center"
-         style="background: #d4d8dd;">
-
+    <div class="card-header" style="background: #f3f5f7; color: white;">
         <h5 class="card-title mb-0 text-white">Filtros</h5>
-
-        <!-- BOTÃO HABILIDADES (ADICIONADO) -->
-        <a href="{% url 'comparativo_habilidades' %}" class="btn btn-secondary btn-sm">
-            Habilidades
-        </a>
     </div>
-
     <div class="card-body">
-        <form method="get" class="filter-form d-flex gap-2 align-items-end">
-
+        <form method="get" class="filter-form">
             <div>
-                <label>Disciplina</label>
+                <label>Disciplina:</label>
                 <select name="disciplina">
                     {% for disc in todas_disciplinas %}
                         <option value="{{ disc.id }}" {% if disc.id == disciplina.id %}selected{% endif %}>
@@ -34,7 +25,7 @@
             </div>
 
             <div>
-                <label>Série</label>
+                <label>Série/Ano:</label>
                 <select name="serie">
                     {% for s in todas_series %}
                         <option value="{{ s.id }}" {% if s.id == serie.id %}selected{% endif %}>
@@ -44,17 +35,37 @@
                 </select>
             </div>
 
-            <button type="submit" class="btn btn-primary">
-                Filtrar
-            </button>
-
+            <div style="display:flex; gap:8px; align-items:flex-end">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{% url 'comparativo_habilidades' %}" class="btn btn-secondary">
+                    Habilidades
+                </a>
+            </div>
         </form>
+    </div>
+</div>
+
+<!-- ================= LEGENDA PADRÃO SAEB ================= -->
+<div class="card no-print">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">Padrão de Desempenho SAEB 2024 — {{ disciplina.nome }} / {{ serie.nome }}</h5>
+    </div>
+    <div class="card-body" style="padding: 10px 15px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span class="badge-nivel badge-danger">Abaixo do Básico</span>
+            <span class="badge-nivel badge-warning">Básico</span>
+            <span class="badge-nivel badge-info">Adequado</span>
+            <span class="badge-nivel badge-success">Avançado</span>
+            <span class="text-muted" style="font-size:0.75em; margin-left:8px;">
+                — aplicado automaticamente sobre a proficiência média de cada esfera
+            </span>
+        </div>
     </div>
 </div>
 
 <!-- ================= TABELA ================= -->
 <div class="card">
-    <div class="card-header" style="background:#d4d8dd;">
+    <div class="card-header" style="background: #d4d8dd; color: white;">
         <h5 class="card-title mb-0 text-white">
             Proficiência Média por Esfera e Ano (Tabela)
         </h5>
@@ -66,9 +77,15 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Esfera</th>
+                        <th rowspan="2">Esfera</th> <!-- Esfera ocupa 2 linhas -->
                         {% for ano in anos %}
-                            <th class="text-center">{{ ano }}</th>
+                            <th colspan="2" class="text-center">{{ ano }}</th> <!-- Cada ano ocupa 2 colunas -->
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        {% for ano in anos %}
+                            <th class="text-center">Proficiência</th>
+                            <th class="text-center">Padrão SAEB</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -77,10 +94,22 @@
                     <tr>
                         <td><strong>{{ esfera.nome }}</strong></td>
                         {% for ano in anos %}
-                            {% with d=matriz|dict_key:esfera.id|dict_key:ano %}
+                            {% with desempenho=matriz|dict_key:esfera.id|dict_key:ano %}
                             <td class="text-center">
-                                {% if d %}
-                                    {{ d.proficiencia_media|floatformat:1 }}
+                                {% if desempenho %}
+                                    {{ desempenho.proficiencia_media|floatformat:1 }}
+                                    <span class="small">
+                                        ({{ desempenho.alunos_avaliados }})
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if desempenho and desempenho.padrao_saeb %}
+                                    <span class="badge-nivel badge-{{ desempenho.padrao_saeb.cor }}">
+                                        {{ desempenho.padrao_saeb.nivel }}
+                                    </span>
                                 {% else %}
                                     —
                                 {% endif %}
@@ -103,14 +132,14 @@
 <div class="card">
 
     <div class="card-header d-flex justify-content-between align-items-center"
-         style="background:#d4d8dd;">
+         style="background: #d4d8dd; color: white;">
 
         <h5 class="card-title mb-0 text-white">
             Proficiência Média por Esfera e Ano
         </h5>
 
         <span class="badge"
-              style="background:#e9ecef; color:#1e293b;">
+              style="background: #e9ecef; color: #1e293b; padding: 5px 10px; border-radius: 4px;">
             {{ esferas|length }} esferas
         </span>
     </div>
@@ -149,47 +178,91 @@
 {% if ranking %}
 <!-- ================= RANKING ================= -->
 <div class="card">
+
     <div class="card-header d-flex justify-content-between align-items-center"
-         style="background:#d4d8dd;">
+         style="background: #d4d8dd; color: white;">
 
         <h5 class="card-title mb-0 text-white">
             🏆 Ranking das Esferas ({{ ultimo_ano }})
         </h5>
 
         <span class="badge"
-              style="background:#e9ecef; color:#1e293b;">
+              style="background: #e9ecef; color: #1e293b; padding: 5px 10px; border-radius: 4px;">
             {{ ranking|length }} posições
         </span>
     </div>
 
     <div class="card-body">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Esfera</th>
-                    <th>Proficiência</th>
-                    <th>Alunos</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in ranking %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ item.esfera.nome }}</td>
-                    <td>{{ item.proficiencia_media|floatformat:1 }}</td>
-                    <td>{{ item.alunos_avaliados }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th class="text-center">#</th>
+                        <th>Esfera</th>
+                        <th class="text-center">Proficiência</th>
+                        <th class="text-center">Padrão SAEB</th>
+                        <th class="text-center">Alunos</th>
+                        <th class="text-center">% Abaixo+Básico</th>
+                        <th class="text-center">% Adequado+Avançado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in ranking %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td>{{ item.esfera.nome }}</td>
+
+                        <!-- Proficiência com destaque de cor pelo nível -->
+                        <td class="text-center">
+                            {% if item.padrao_saeb %}
+                                <span class="prof-destaque prof-{{ item.padrao_saeb.cor }}">
+                                    {{ item.proficiencia_media|floatformat:1 }}
+                                </span>
+                            {% else %}
+                                {{ item.proficiencia_media|floatformat:1 }}
+                            {% endif %}
+                        </td>
+
+                        <!-- Badge do nível SAEB -->
+                        <td class="text-center">
+                            {% if item.padrao_saeb %}
+                                <span class="badge-nivel badge-{{ item.padrao_saeb.cor }}">
+                                    {{ item.padrao_saeb.nivel }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">{{ item.alunos_avaliados }}</td>
+                        <td class="text-center">{{ item.soma_ab|floatformat:1 }}%</td>
+                        <td class="text-center">{{ item.soma_aa|floatformat:1 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
     </div>
 
     <div class="card-footer text-muted" style="background:#e9ecef;">
-        Ranking baseado no último ano disponível.
+        Ranking baseado na proficiência média do último ano disponível.
     </div>
+
 </div>
 {% endif %}
+
+<!-- ================= OBS ================= -->
+<div class="card">
+    <div class="card-body" style="background:#e9ecef;">
+        <p class="text-muted">
+            * Os valores representam a proficiência média por esfera.
+            Os níveis (Abaixo do Básico, Básico, Adequado, Avançado)
+            seguem o Padrão de Desempenho SAEB 2024.
+        </p>
+    </div>
+</div>
 
 {% if anos %}
 <script>
@@ -224,10 +297,7 @@ let grafico = new Chart(ctx, {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: 'top',
-                labels: { font: { size: 8 } }
-            },
+            legend: { position: 'top' },
             datalabels: {
                 anchor: 'end',
                 align: 'end',
@@ -250,7 +320,7 @@ function mudarTipo(id, tipo) {
 }
 
 window.onbeforeprint = () => {
-    grafico.resize(800, 180);
+    grafico.resize();
 };
 </script>
 {% endif %}
@@ -266,14 +336,61 @@ body { background:#f8f9fa; font-family:Arial; }
     box-shadow:0 2px 4px rgba(0,0,0,0.1);
 }
 
+.card-title {
+    font-weight:600;
+    font-size:14px;
+}
+
 .table { width:100%; border-collapse:collapse; }
-th,td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
+th, td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
+
+.btn-outline-primary {
+    border:1px solid #007bff;
+    color:#007bff;
+    background:transparent;
+    padding:5px 10px;
+    font-size:0.75em;
+}
+
+.btn-outline-primary.active,
+.btn-outline-primary:hover {
+    background:#007bff;
+    color:white;
+}
 
 .chart-container-principal {
     height:280px;
 }
 
-/* ================= IMPRESSÃO ================= */
+/* ===== BADGES DE NÍVEL SAEB ===== */
+.badge-nivel {
+    display: inline-block;
+    font-size: 0.68em;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.badge-danger  { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+.badge-warning { background: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+.badge-info    { background: #cff4fc; color: #055160; border: 1px solid #b6effb; }
+.badge-success { background: #d1e7dd; color: #0a3622; border: 1px solid #a3cfbb; }
+
+/* ===== PROFICIÊNCIA COM COR DE FUNDO ===== */
+.prof-destaque {
+    display: inline-block;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.prof-danger  { background: #f8d7da; color: #842029; }
+.prof-warning { background: #fff3cd; color: #664d03; }
+.prof-info    { background: #cff4fc; color: #055160; }
+.prof-success { background: #d1e7dd; color: #0a3622; }
+
 @media print {
 
     @page {
@@ -287,7 +404,10 @@ th,td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
         display:none !important;
     }
 
-    body { background:#fff; font-size:9pt; }
+    body {
+        background:#fff;
+        font-size:9pt;
+    }
 
     .card {
         page-break-inside: avoid;
@@ -304,11 +424,16 @@ th,td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
         width:100% !important;
         height:180px !important;
         max-height:180px !important;
+        page-break-inside: avoid;
     }
 
-    table { font-size:9px; }
+    table {
+        font-size:9px;
+    }
 
-    thead { display: table-header-group; }
+    thead {
+        display: table-header-group;
+    }
 }
 </style>
 
