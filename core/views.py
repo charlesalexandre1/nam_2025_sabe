@@ -1450,6 +1450,155 @@ def painel_esferas(request):
         'evolucao': evolucao_com_padrao,
     }
     return render(request, 'dashboard/painel_esferas.html', context)
+
+
+
+# pagina com resultado de todos as series e disciplinas do municipio 18_03_2026
+
+from django.shortcuts import render
+from django.db.models import Avg, Sum
+from .models import Esfera, Disciplina, Serie, DesempenhoEsfera
+
+
+def painel_comparativo_geral(request, municipio_id=None):
+
+    municipio_selecionado = None
+    if municipio_id:
+        try:
+            municipio_selecionado = Esfera.objects.get(pk=municipio_id)
+        except Esfera.DoesNotExist:
+            pass
+
+    # -----------------------------
+    # BASE DE DADOS
+    # -----------------------------
+    desempenhos_base_query = DesempenhoEsfera.objects.all()
+
+    if municipio_selecionado:
+        desempenhos_base_query = desempenhos_base_query.filter(
+            municipio=municipio_selecionado
+        )
+
+    # 🔧 CORREÇÃO AQUI (related_name correto)
+    todas_disciplinas = Disciplina.objects.filter(
+        desempenhos_esfera__in=desempenhos_base_query
+    ).distinct().order_by('nome')
+
+    todas_series = Serie.objects.filter(
+        desempenhos_esfera__in=desempenhos_base_query
+    ).distinct().order_by('nome')
+
+    todos_anos = desempenhos_base_query.values_list(
+        'ano', flat=True
+    ).distinct().order_by('ano')
+
+    # -----------------------------
+    # ESTRUTURA COMPARATIVA
+    # -----------------------------
+    dados_comparativos = {}
+
+    for disc in todas_disciplinas:
+        dados_comparativos[disc.id] = {
+            'nome': disc.nome,
+            'series': {}
+        }
+
+        for serie_obj in todas_series:
+            dados_comparativos[disc.id]['series'][serie_obj.id] = {
+                'nome': serie_obj.nome,
+                'anos_data': {}
+            }
+
+            desempenhos_por_serie_disc = desempenhos_base_query.filter(
+                disciplina=disc,
+                serie=serie_obj
+            ).select_related('esfera').order_by('ano', 'esfera__nome')
+
+            for ano in todos_anos:
+                dados_comparativos[disc.id]['series'][serie_obj.id]['anos_data'][ano] = {}
+
+                desempenhos_no_ano = [
+                    d for d in desempenhos_por_serie_disc if d.ano == ano
+                ]
+
+                for d in desempenhos_no_ano:
+                    d.padrao_saeb = classificar_nivel(
+                        disc.nome,
+                        serie_obj.nome,
+                        d.proficiencia_media
+                    )
+
+                    dados_comparativos[disc.id]['series'][serie_obj.id]['anos_data'][ano][d.esfera_id] = d
+
+    # -----------------------------
+    # ESFERAS
+    # -----------------------------
+    todas_esferas = Esfera.objects.all().order_by('nome')
+
+    # =========================================================
+    # 🔴 BLOCO MUNICIPAL
+    # =========================================================
+    resumo_municipal = []
+    evolucao_municipal = []
+    ganho_municipal = None
+
+    esfera_municipal = Esfera.objects.filter(
+        nome__icontains="MUNICIPAL"
+    ).first()
+
+    if esfera_municipal:
+        dados_municipais = desempenhos_base_query.filter(
+            esfera=esfera_municipal
+        ).order_by('ano')
+
+        # TABELA MUNICIPAL
+        for d in dados_municipais:
+            d.padrao_saeb = classificar_nivel(
+                d.disciplina.nome,
+                d.serie.nome,
+                d.proficiencia_media
+            )
+            resumo_municipal.append(d)
+
+        # EVOLUÇÃO
+        evolucao = dados_municipais.values('ano').annotate(
+            media=Avg('proficiencia_media')
+        ).order_by('ano')
+
+        evolucao_municipal = list(evolucao)
+
+        for e in evolucao_municipal:
+            e['padrao_saeb'] = classificar_nivel(
+                dados_municipais.first().disciplina.nome if dados_municipais.exists() else "",
+                dados_municipais.first().serie.nome if dados_municipais.exists() else "",
+                e['media']
+            )
+
+        # GANHO
+        if len(evolucao_municipal) >= 2:
+            inicio = evolucao_municipal[0]['media']
+            fim = evolucao_municipal[-1]['media']
+            if inicio and fim:
+                ganho_municipal = round(fim - inicio, 1)
+
+    # -----------------------------
+    # CONTEXTO
+    # -----------------------------
+    context = {
+        'municipio_selecionado': municipio_selecionado,
+        'todas_disciplinas': todas_disciplinas,
+        'todas_series': todas_series,
+        'todos_anos': todos_anos,
+        'todas_esferas': todas_esferas,
+        'dados_comparativos': dados_comparativos,
+
+        # 🔴 MUNICIPAL
+        'resumo_municipal': resumo_municipal,
+        'evolucao_municipal': evolucao_municipal,
+        'ganho_municipal': ganho_municipal,
+    }
+
+    return render(request, 'dashboard/painel_comparativo_geral.html', context)
     # analise das habilidades por esfera - 04_03_2026
 
 from django.shortcuts import render, get_object_or_404

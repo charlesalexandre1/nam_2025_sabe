@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load painel_tags %}
+
+{% block content %}
+
+<h3 class="mb-4">
+    Comparativo Geral de Desempenho SAEB
+    {% if municipio_selecionado %}
+        <br><small class="text-muted">Município: {{ municipio_selecionado.nome }}</small>
+    {% endif %}
+</h3>
+
+<!-- ================= LEGENDA ================= -->
+<div class="card no-print">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">Padrão de Desempenho SAEB</h5>
+    </div>
+    <div class="card-body" style="padding: 10px 15px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span class="badge-nivel badge-danger">Abaixo do Básico</span>
+            <span class="badge-nivel badge-warning">Básico</span>
+            <span class="badge-nivel badge-info">Adequado</span>
+            <span class="badge-nivel badge-success">Avançado</span>
+        </div>
+    </div>
+</div>
+
+<!-- ================= MUNICIPAL ================= -->
+{% if evolucao_municipal %}
+<div class="card">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">
+            Proficiência Municipal por Ano
+        </h5>
+    </div>
+
+    <div class="card-body">
+
+        <div style="margin-bottom:10px;">
+            <strong>Ganho no período:</strong>
+            {% if ganho_municipal %}
+                <span class="badge-nivel badge-{% if ganho_municipal >= 0 %}success{% else %}danger{% endif %}">
+                    {{ ganho_municipal }}
+                </span>
+            {% else %}
+                —
+            {% endif %}
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Esfera</th>
+                        {% for e in evolucao_municipal %}
+                            <th colspan="2" class="text-center">{{ e.ano }}</th>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        {% for e in evolucao_municipal %}
+                            <th class="text-center">Proficiência</th>
+                            <th class="text-center">Padrão SAEB</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td><strong>Municipal</strong></td>
+
+                        {% for e in evolucao_municipal %}
+                        <td class="text-center">
+                            {{ e.media|floatformat:1 }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge-nivel badge-{{ e.padrao_saeb.cor }}">
+                                {{ e.padrao_saeb.nivel }}
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+{% endif %}
+
+<!-- ================= COMPARATIVO ================= -->
+{% for disc_id, disc_data in dados_comparativos.items %}
+    {% for serie_id, serie_data in disc_data.series.items %}
+        {% if serie_data.anos_data %}
+
+<div class="card">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">
+            {{ disc_data.nome }} / {{ serie_data.nome }}
+        </h5>
+    </div>
+
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Esfera</th>
+                        {% for ano in todos_anos %}
+                            <th colspan="2" class="text-center">{{ ano }}</th>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        {% for ano in todos_anos %}
+                            <th class="text-center">Proficiência</th>
+                            <th class="text-center">Padrão SAEB</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for esfera in todas_esferas %}
+                    <tr>
+                        <td><strong>{{ esfera.nome }}</strong></td>
+
+                        {% for ano in todos_anos %}
+                        {% with desempenho=serie_data.anos_data|dict_key:ano|dict_key:esfera.id %}
+
+                        <td class="text-center">
+                            {% if desempenho %}
+                                {{ desempenho.proficiencia_media|floatformat:1 }}
+                                <span class="small">
+                                    ({{ desempenho.alunos_avaliados }})
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            {% if desempenho and desempenho.padrao_saeb %}
+                                <span class="badge-nivel badge-{{ desempenho.padrao_saeb.cor }}">
+                                    {{ desempenho.padrao_saeb.nivel }}
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        {% endwith %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+</div>
+
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+
+<!-- ================= OBS ================= -->
+<div class="card mt-4">
+    <div class="card-body" style="background:#e9ecef;">
+        <p class="text-muted">
+            * Proficiência média por esfera. Classificação conforme padrão SAEB.
+        </p>
+    </div>
+</div>
+
+<style>
+body { background:#f8f9fa; font-family:Arial; }
+
+.card {
+    background:white;
+    border-radius:8px;
+    padding:15px;
+    margin:10px 0;
+    box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table { width:100%; border-collapse:collapse; }
+th, td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
+
+.badge-nivel {
+    font-size: 0.68em;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.badge-danger  { background: #f8d7da; color: #842029; }
+.badge-warning { background: #fff3cd; color: #664d03; }
+.badge-info    { background: #cff4fc; color: #055160; }
+.badge-success { background: #d1e7dd; color: #0a3622; }
+
+@media print {
+    .no-print { display:none !important; }
+    .card { page-break-inside: avoid; }
+}
+</style>
+
+{% endblock %}
