@@ -1092,28 +1092,30 @@ from collections import defaultdict
 from django.shortcuts import render
 from .models import DesempenhoEscola, Localidade # Certifique-se de que Localidade está importado
 
+
+
 def relatorio_escolas_participantes(request):
 
     queryset = DesempenhoEscola.objects.select_related(
         'escola', 'escola__localidade', 'serie'
     )
 
-    localidade_id = request.GET.get('localidade') # Renomeado para evitar confusão
+    localidade_id = request.GET.get('localidade')
     escola_filtro = request.GET.get('escola')
     ano_inicio = request.GET.get('ano_inicio')
     ano_fim = request.GET.get('ano_fim')
 
+    # ================= FILTROS =================
     if localidade_id:
         try:
-            # Tenta converter para int. Se falhar, ignora o filtro ou trata o erro.
             localidade_id = int(localidade_id)
             queryset = queryset.filter(escola__localidade_id=localidade_id)
         except ValueError:
-            # Opcional: logar o erro ou adicionar uma mensagem para o usuário
-            pass # Por enquanto, apenas ignora o filtro se o ID for inválido
+            pass
 
     if escola_filtro:
         queryset = queryset.filter(escola_id=escola_filtro)
+
     if ano_inicio and ano_fim:
         queryset = queryset.filter(ano__range=[ano_inicio, ano_fim])
     elif ano_inicio:
@@ -1121,7 +1123,7 @@ def relatorio_escolas_participantes(request):
     elif ano_fim:
         queryset = queryset.filter(ano__lte=ano_fim)
 
-    # Agrupa por escola + série → Max evita duplicação por disciplina
+    # ================= AGRUPAMENTO =================
     dados_series = (
         queryset
         .values(
@@ -1139,7 +1141,7 @@ def relatorio_escolas_participantes(request):
         .order_by('ano', 'escola__nome', 'serie__nome')
     )
 
-    # Monta estrutura hierárquica por (ano, escola)
+    # ================= ESTRUTURA =================
     escolas_dict = defaultdict(lambda: {
         'ano': '',
         'nome': '',
@@ -1147,31 +1149,52 @@ def relatorio_escolas_participantes(request):
         'series': [],
         'total_avaliados': 0,
         'total_previstos': 0,
+        'percentual_total': 0,  # NOVO
     })
 
     for d in dados_series:
         chave = (d['ano'], d['escola__id'])
+
+        avaliados = d['alunos_serie'] or 0
+        previstos = d['previstos_serie'] or 0
+
+        # ===== Percentual por série =====
+        percentual = 0
+        if previstos > 0:
+            percentual = (avaliados / previstos) * 100
+
         escolas_dict[chave]['ano'] = d['ano']
         escolas_dict[chave]['nome'] = d['escola__nome']
         escolas_dict[chave]['localidade'] = d['escola__localidade__nome']
+
         escolas_dict[chave]['series'].append({
             'nome': d['serie__nome'],
-            'avaliados': d['alunos_serie'],
-            'previstos': d['previstos_serie'],
+            'avaliados': avaliados,
+            'previstos': previstos,
+            'percentual': percentual,
         })
-        escolas_dict[chave]['total_avaliados'] += d['alunos_serie']
-        escolas_dict[chave]['total_previstos'] += d['previstos_serie']
 
+        escolas_dict[chave]['total_avaliados'] += avaliados
+        escolas_dict[chave]['total_previstos'] += previstos
+
+    # ================= TOTAL POR ESCOLA =================
+    for escola in escolas_dict.values():
+        if escola['total_previstos'] > 0:
+            escola['percentual_total'] = (
+                escola['total_avaliados'] / escola['total_previstos']
+            ) * 100
+        else:
+            escola['percentual_total'] = 0
+
+    # ================= LISTA FINAL =================
     dados_agrupados = sorted(
         escolas_dict.values(),
         key=lambda x: (x['ano'], x['nome'])
     )
 
-    # Popula filtros
-    # Certifique-se de que Localidade está importado corretamente
+    # ================= FILTROS =================
     localidades = Localidade.objects.all().order_by('nome')
 
-    # Anos disponíveis para os selects de filtro (todos os anos que existem dados)
     anos_disponiveis = (
         DesempenhoEscola.objects
         .values_list('ano', flat=True)
@@ -1179,20 +1202,27 @@ def relatorio_escolas_participantes(request):
         .order_by('ano')
     )
 
-    # CÁLCULO DOS TOTAIS GLOBAIS PARA OS CARDS DE STATS E O RODAPÉ DA TABELA
+    # ================= TOTAIS GERAIS =================
     grand_total_avaliados = sum(e['total_avaliados'] for e in dados_agrupados)
     grand_total_previstos = sum(e['total_previstos'] for e in dados_agrupados)
     total_series_count = sum(len(escola['series']) for escola in dados_agrupados)
 
+    # Percentual geral
+    percentual_geral = 0
+    if grand_total_previstos > 0:
+        percentual_geral = (grand_total_avaliados / grand_total_previstos) * 100
+
+    # ================= CONTEXT =================
     return render(request, 'dashboard/relatorio_escolas_participantes.html', {
         'dados': dados_agrupados,
         'localidades': localidades,
         'anos_disponiveis': anos_disponiveis,
-        'filtro_localidade': str(localidade_id) if localidade_id else '', # Garante que seja string para comparação no template
+        'filtro_localidade': str(localidade_id) if localidade_id else '',
         'filtro_ano_inicio': ano_inicio or '',
         'filtro_ano_fim': ano_fim or '',
         'grand_total_avaliados': grand_total_avaliados,
         'grand_total_previstos': grand_total_previstos,
+        'percentual_geral': percentual_geral,  # NOVO
         'total_series_count': total_series_count,
     })
 
