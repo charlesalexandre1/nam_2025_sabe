@@ -4,88 +4,16 @@
 {% block content %}
 
 <h3 class="mb-4">
-    Comparativo Geral de Desempenho SAEB
+    Comparativo Geral de Desempenho SABE
     {% if municipio_selecionado %}
         <br><small class="text-muted">Município: {{ municipio_selecionado.nome }}</small>
     {% endif %}
 </h3>
 
 <!-- ================= LEGENDA ================= -->
-<div class="card no-print">
-    <div class="card-header" style="background: #d4d8dd;">
-        <h5 class="card-title mb-0 text-white">Padrão de Desempenho SAEB</h5>
-    </div>
-    <div class="card-body" style="padding: 10px 15px;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <span class="badge-nivel badge-danger">Abaixo do Básico</span>
-            <span class="badge-nivel badge-warning">Básico</span>
-            <span class="badge-nivel badge-info">Adequado</span>
-            <span class="badge-nivel badge-success">Avançado</span>
-        </div>
-    </div>
-</div>
 
 <!-- ================= MUNICIPAL ================= -->
-{% if evolucao_municipal %}
-<div class="card">
-    <div class="card-header" style="background: #d4d8dd;">
-        <h5 class="card-title mb-0 text-white">
-            Proficiência Municipal por Ano
-        </h5>
-    </div>
 
-    <div class="card-body">
-
-        <div style="margin-bottom:10px;">
-            <strong>Ganho no período:</strong>
-            {% if ganho_municipal %}
-                <span class="badge-nivel badge-{% if ganho_municipal >= 0 %}success{% else %}danger{% endif %}">
-                    {{ ganho_municipal }}
-                </span>
-            {% else %}
-                —
-            {% endif %}
-        </div>
-
-        <div class="table-wrapper">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th rowspan="2">Esfera</th>
-                        {% for e in evolucao_municipal %}
-                            <th colspan="2" class="text-center">{{ e.ano }}</th>
-                        {% endfor %}
-                    </tr>
-                    <tr>
-                        {% for e in evolucao_municipal %}
-                            <th class="text-center">Proficiência</th>
-                            <th class="text-center">Padrão SAEB</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-
-                <tbody>
-                    <tr>
-                        <td><strong>Municipal</strong></td>
-
-                        {% for e in evolucao_municipal %}
-                        <td class="text-center">
-                            {{ e.media|floatformat:1 }}
-                        </td>
-                        <td class="text-center">
-                            <span class="badge-nivel badge-{{ e.padrao_saeb.cor }}">
-                                {{ e.padrao_saeb.nivel }}
-                            </span>
-                        </td>
-                        {% endfor %}
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-    </div>
-</div>
-{% endif %}
 
 <!-- ================= COMPARATIVO ================= -->
 {% for disc_id, disc_data in dados_comparativos.items %}
@@ -197,8 +125,48 @@ th, td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
 .badge-success { background: #d1e7dd; color: #0a3622; }
 
 @media print {
-    .no-print { display:none !important; }
-    .card { page-break-inside: avoid; }
+
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    .no-print,
+    .btn,
+    select {
+        display:none !important;
+    }
+
+    body {
+        background:#fff;
+        font-size:9pt;
+    }
+
+    .card {
+        page-break-inside: avoid;
+        border:1px solid #ccc;
+    }
+
+    .chart-container-principal {
+        height:180px !important;
+        max-height:180px !important;
+        overflow:hidden !important;
+    }
+
+    canvas {
+        width:100% !important;
+        height:180px !important;
+        max-height:180px !important;
+        page-break-inside: avoid;
+    }
+
+    table {
+        font-size:9px;
+    }
+
+    thead {
+        display: table-header-group;
+    }
 }
 </style>
 

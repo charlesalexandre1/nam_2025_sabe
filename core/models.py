@@ -630,3 +630,48 @@ class ResultHab(models.Model):
 
     def __str__(self):
         return f"{self.ano} - {self.esfera} - {self.hab.cd_hab}"
+
+
+# habilidade por escolas 20_03_2026
+
+class ResultadoHabEscola(models.Model):
+    ano = models.IntegerField('Ano')
+
+    escola = models.ForeignKey(
+        Escola,
+        on_delete=models.CASCADE,
+        verbose_name='Escola'
+    )
+
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        verbose_name='Série/Ano'
+    )
+
+    disciplina = models.ForeignKey(
+        Disciplina,
+        on_delete=models.CASCADE,
+        verbose_name='Disciplina'
+    )
+
+    hab = models.ForeignKey(
+        Hab,
+        on_delete=models.CASCADE,
+        verbose_name='Habilidade'
+    )
+
+    tx_acerto = models.DecimalField(
+        'Taxa de Acerto (%)',
+        max_digits=5,
+        decimal_places=2
+    )
+
+    class Meta:
+        unique_together = ['ano', 'escola', 'serie', 'disciplina', 'hab']
+        indexes = [
+            models.Index(fields=['ano', 'escola', 'serie', 'disciplina']),
+        ]
+
+    def __str__(self):
+        return f"{self.ano} - {self.escola.nome} - {self.disciplina} - {self.serie} - {self.hab.cd_hab}"

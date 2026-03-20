@@ -629,58 +629,114 @@ new Chart(
     }
 
     /* IMPRESSÃO */
-    @media print{
-        .page-title-box,
-        .card-header,
-        .form-group, /* Removido, pois filter-form já é ocultado */
-        .btn, /* Removido, pois no-print já é aplicado */
-        .card-footer,
-        nav,
-        .sidebar{
-            display:none !important;
-        }
+    @media print {
 
-        .table{
-            font-size:11px;
-        }
-
-        .container-graficos{
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .chart-container-principal{
-            height:300px;
-        }
-        .no-print {
-            display: none !important;
-        }
-        .card {
-            box-shadow: none !important;
-            border: 1px solid #dee2e6 !important;
-            margin-bottom: 10px !important;
-        }
-        .card-header {
-            background: #e9ecef !important;
-            color: #1e293b !important;
-            border-bottom: 1px solid #dee2e6 !important;
-        }
-        .card-title {
-            color: #1e293b !important;
-        }
-        .badge {
-            background: #f8f9fa !important;
-            color: #6c757d !important;
-            border: 1px solid #dee2e6 !important;
-        }
-        table th {
-            background: #e9ecef !important;
-            color: #1e293b !important;
-            border: 1px solid #dee2e6 !important;
-        }
-        table td {
-            border: 1px solid #dee2e6 !important;
-        }
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
     }
+
+    .no-print,
+    .btn,
+    select {
+        display:none !important;
+    }
+
+    body {
+        background:#fff;
+        font-size:9pt;
+    }
+
+    .card {
+        page-break-inside: avoid;
+        border:1px solid #ccc;
+    }
+
+    .chart-container-principal {
+        height:180px !important;
+        max-height:180px !important;
+        overflow:hidden !important;
+    }
+
+    canvas {
+        width:100% !important;
+        height:180px !important;
+        max-height:180px !important;
+        page-break-inside: avoid;
+    }
+
+    table {
+        font-size:9px;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+}@media print {
+
+    /* OCULTAR ELEMENTOS */
+    .page-title-box,
+    .card-header,
+    .form-group,
+    .btn,
+    .card-footer,
+    nav,
+    .sidebar,
+    .no-print {
+        display: none !important;
+    }
+
+    /* TABELA */
+    .table {
+        font-size: 11px;
+    }
+
+    table th {
+        background: #e9ecef !important;
+        color: #1e293b !important;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    table td {
+        border: 1px solid #dee2e6 !important;
+    }
+
+    /* GRÁFICOS */
+    .container-graficos {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .chart-container-principal {
+        height: 300px !important;
+    }
+
+    /* CARDS (VISUAL LIMPO PARA IMPRESSÃO) */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        margin-bottom: 10px !important;
+    }
+
+    .card-header {
+        background: #e9ecef !important;
+        color: #1e293b !important;
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+
+    .card-title {
+        color: #1e293b !important;
+    }
+
+    /* BADGES */
+    .badge {
+        background: #f8f9fa !important;
+        color: #6c757d !important;
+        border: 1px solid #dee2e6 !important;
+    }
+
+}
 </style>
 
 {% endblock %}
