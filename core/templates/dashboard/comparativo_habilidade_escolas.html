@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% load dict_extras %}
+
+{% block content %}
+
+<h3 class="mb-4">
+    Comparativo por Localidade — SaBE
+</h3>
+
+
+<div class="card mb-4">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">Filtros de Análise</h5>
+    </div>
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3">
+                {# Grupo 1: Filtros Obrigatórios #}
+                <div class="col-md-6 border-end pe-md-4">
+                    <p class="fw-bold mb-2">Critérios Obrigatórios:</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Ano *</label>
+                            <select name="ano" class="form-select form-select-sm" required>
+                                <option value="">-- Selecione --</option>
+                                {% for a in anos %}
+                                    <option value="{{ a }}"
+                                        {% if filtros.ano == a %}selected{% endif %}>
+                                        {{ a }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Série/Ano *</label>
+                            <select name="serie" class="form-select form-select-sm" required>
+                                <option value="">-- Selecione --</option>
+                                {% for s in series %}
+                                    <option value="{{ s.id }}"
+                                        {% if filtros.serie_id == s.id %}selected{% endif %}>
+                                        {{ s }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Disciplina *</label>
+                            <select name="disciplina" class="form-select form-select-sm" required>
+                                <option value="">-- Selecione --</option>
+                                {% for d in disciplinas %}
+                                    <option value="{{ d.id }}"
+                                        {% if filtros.disciplina_id == d.id %}selected{% endif %}>
+                                        {{ d }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {# Grupo 2: Filtros Opcionais e Ação #}
+                <div class="col-md-6 ps-md-4">
+                    <p class="fw-bold mb-2">Outros Filtros e Ação:</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Localidade</label>
+                            <select name="localidade" class="form-select form-select-sm">
+                                <option value="">Todas</option>
+                                {% for l in localidades %}
+                                    <option value="{{ l.id }}"
+                                        {% if filtros.localidade_id == l.id %}selected{% endif %}>
+                                        {{ l }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Limiar baixo desempenho (%)</label>
+                            <input type="number" name="limiar" class="form-control form-control-sm"
+                                   value="{{ filtros.limiar }}" min="0" max="100" step="5">
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-funnel me-2"></i> Aplicar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not dados_prontos %}
+    <div class="card mt-3">
+        <div class="card-body" style="background:#e9ecef;">
+            <p class="text-muted mb-0">Selecione Ano, Série e Disciplina para visualizar os dados.</p>
+        </div>
+    </div>
+
+{% else %}
+
+
+<div class="card mt-3">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">
+            Habilidades com Baixo Desempenho na Rede
+            <small style="font-size:0.75em;">— Limiar: {{ limiar }}%</small>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if habs_baixo_rede %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Habilidade</th>
+                        <th>Descrição</th>
+                        <th class="text-center">Média Rede (%)</th>
+                        <th class="text-center">Escolas abaixo</th>
+                        <th class="text-center">Total Escolas</th>
+                        <th class="text-center">% Escolas Críticas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in habs_baixo_rede %}
+                    <tr>
+                        <td>
+                            <span class="badge-nivel badge-danger">{{ h.hab__cd_hab }}</span>
+                        </td>
+                        <td>{{ h.hab__dc_hab }}</td>
+                        <td class="text-center" style="color:#842029; font-weight:600;">
+                            {{ h.media_rede|floatformat:1 }}%
+                        </td>
+                        <td class="text-center">{{ h.escolas_baixo }}</td>
+                        <td class="text-center">{{ h.total_escolas }}</td>
+                        <td class="text-center">
+                            {% if h.total_escolas %}
+                                {% widthratio h.escolas_baixo h.total_escolas 100 %}%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p style="color:#0a3622; font-weight:600;">
+                Nenhuma habilidade abaixo do limiar na rede.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+
+{% for loc_nome, bloco in por_localidade.items %}
+
+<div class="card mt-3">
+
+    {# Cabeçalho da localidade com totalizadores #}
+    <div class="card-header" style="background: #d4d8dd;">
+        <div class="row align-items-center g-2">
+            <div class="col-md-3">
+                <h5 class="card-title mb-0 text-white">
+                    {{ loc_nome }}
+                    <small style="font-size:0.75em;">
+                        — {{ bloco.escolas|length }} escola(s)
+                    </small>
+                </h5>
+            </div>
+            <div class="col-md-9">
+                <div style="display:flex; flex-wrap:wrap; gap:16px; font-size:0.82em; color:#fff;">
+
+                    <span>
+                        Previstos: <strong>{{ bloco.total_previstos }}</strong>
+                    </span>
+
+                    <span>
+                        Avaliados: <strong>{{ bloco.total_avaliados }}</strong>
+                    </span>
+
+                    {% if bloco.perc_avaliados_loc is not None %}
+                    <span>
+                        Participação:
+                        <strong
+                            {% if bloco.perc_avaliados_loc < 80 %}
+                                style="color:#fff3cd;"
+                            {% endif %}>
+                            {{ bloco.perc_avaliados_loc }}%
+                        </strong>
+                    </span>
+                    {% endif %}
+
+                    {% if bloco.media_profic_loc is not None %}
+                    <span>
+                        Profic. média: <strong>{{ bloco.media_profic_loc }}</strong>
+                    </span>
+                    {% endif %}
+
+                    {% if bloco.media_habs_loc is not None %}
+                    <span>
+                        Média habilidades:
+                        <strong
+                            {% if bloco.media_habs_loc < limiar %}
+                                style="color:#fff3cd;"
+                            {% endif %}>
+                            {{ bloco.media_habs_loc }}%
+                        </strong>
+                    </span>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Tabela de escolas #}
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Escola</th>
+                        <th rowspan="2">Bairro/Distrito</th>
+                        <th colspan="3" class="text-center">Participação</th>
+                        <th colspan="5" class="text-center">Desempenho</th>
+                        <th colspan="2" class="text-center">Habilidades SaBE</th>
+                        <th rowspan="2" class="text-center">Variação</th>
+                        <th rowspan="2" class="text-center">Pos.</th>
+                        <th rowspan="2"></th>
+                    </tr>
+                    <tr>
+                        <th class="text-center">Previstos</th>
+                        <th class="text-center">Avaliados</th>
+                        <th class="text-center">Taxa (%)</th>
+                        <th class="text-center">Proficiência</th>
+                        <th class="text-center">Ab. Básico</th>
+                        <th class="text-center">Básico</th>
+                        <th class="text-center">Adequado</th>
+                        <th class="text-center">Avançado</th>
+                        <th class="text-center">Média (%)</th>
+                        <th class="text-center">Habs Baixas</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                {% for escola in bloco.escolas %}
+
+                {# Linha principal da escola #}
+                <tr>
+                    <td><strong>{{ escola.nome }}</strong></td>
+                    <td style="color:#6c757d;">{{ escola.bairro }}</td>
+
+                    {# Participação #}
+                    <td class="text-center">
+                        {% if escola.alunos_previstos is not None %}{{ escola.alunos_previstos }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if escola.alunos_avaliados is not None %}{{ escola.alunos_avaliados }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if escola.taxa_participacao is not None %}
+                            <span {% if escola.taxa_participacao < 80 %}style="color:#664d03; font-weight:600;"{% endif %}>
+                                {{ escola.taxa_participacao|floatformat:1 }}%
+                            </span>
+                        {% else %}—{% endif %}
+                    </td>
+
+                    {# Proficiência #}
+                    <td class="text-center" style="font-weight:600;">
+                        {% if escola.proficiencia_media is not None %}
+                            {{ escola.proficiencia_media|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </td>
+
+                    {# Níveis de aprendizagem #}
+                    <td class="text-center
+                        {% if escola.abaixo_basico is not None and escola.abaixo_basico > 30 %}
+                            " style="color:#842029; font-weight:600;"
+                        {% else %}"{% endif %}>
+                        {% if escola.abaixo_basico is not None %}{{ escola.abaixo_basico|floatformat:1 }}%{% else %}—{% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        {% if escola.basico is not None %}{{ escola.basico|floatformat:1 }}%{% else %}—{% endif %}
+                    </td>
+
+                    <td class="text-center
+                        {% if escola.adequado is not None and escola.adequado > 50 %}
+                            " style="color:#0a3622; font-weight:600;"
+                        {% else %}"{% endif %}>
+                        {% if escola.adequado is not None %}{{ escola.adequado|floatformat:1 }}%{% else %}—{% endif %}
+                    </td>
+
+                    <td class="text-center
+                        {% if escola.avancado is not None and escola.avancado > 20 %}
+                            " style="color:#0a3622; font-weight:700;"
+                        {% else %}"{% endif %}>
+                        {% if escola.avancado is not None %}{{ escola.avancado|floatformat:1 }}%{% else %}—{% endif %}
+                    </td>
+
+                    {# Média habilidades SaBE #}
+                    <td class="text-center" style="font-weight:600;
+                        {% if escola.media_habs is not None %}
+                            {% if escola.media_habs < limiar %}color:#842029;{% else %}color:#0a3622;{% endif %}
+                        {% endif %}">
+                        {% if escola.media_habs is not None %}{{ escola.media_habs|floatformat:1 }}%{% else %}—{% endif %}
+                    </td>
+
+                    {# Habs baixas #}
+                    <td class="text-center">
+                        {% if escola.habs_baixo is not None and escola.habs_baixo > 0 %}
+                            <span class="badge-nivel badge-danger">{{ escola.habs_baixo }}</span>
+                        {% else %}
+                            <span class="badge-nivel badge-success">0</span>
+                        {% endif %}
+                    </td>
+
+                    {# Variação vs ano anterior #}
+                    <td class="text-center">
+                        {% if escola.variacao is not None %}
+                            <span style="{% if escola.variacao >= 0 %}color:green;{% else %}color:red;{% endif %} font-size:0.75em;">
+                                {% if escola.variacao >= 0 %}↑ +{% else %}↓ {% endif %}{{ escola.variacao|floatformat:1 }}
+                            </span>
+                        {% else %}—{% endif %}
+                    </td>
+
+                    {# Posição no município #}
+                    <td class="text-center">
+                        {% if escola.posicao_municipio is not None %}{{ escola.posicao_municipio }}º{% else %}—{% endif %}
+                    </td>
+
+                    {# Botão collapse #}
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#habs-{{ escola.id }}"
+                                title="Ver habilidades baixas">
+                            Habs
+                        </button>
+                    </td>
+                </tr>
+
+                {# Linha colapsável — habilidades baixas da escola #}
+                <tr>
+                    <td colspan="15" style="padding:0; border:0;">
+                        <div class="collapse" id="habs-{{ escola.id }}">
+                            <div style="padding:12px; background:#f8f9fa; border-bottom:1px solid #dee2e6;">
+                                {% with lista=habs_baixo_por_escola|dict_get:escola.id %}
+                                {% if lista %}
+                                    <p style="color:#842029; font-weight:600; margin-bottom:8px;">
+                                        Habilidades abaixo de {{ limiar }}% — {{ escola.nome }}
+                                    </p>
+                                    <div class="row g-2">
+                                        {% for h in lista %}
+                                        <div class="col-md-4">
+                                            <div style="display:flex; align-items:flex-start; gap:8px;
+                                                        background:#fff; border:1px solid #dee2e6;
+                                                        border-radius:4px; padding:8px;">
+                                                <span class="badge-nivel badge-danger" style="margin-top:2px;">
+                                                    {{ h.hab__cd_hab }}
+                                                </span>
+                                                <span style="font-size:0.8em; flex:1;">{{ h.hab__dc_hab }}</span>
+                                                <strong style="color:#842029; white-space:nowrap;">
+                                                    {{ h.tx_acerto }}%
+                                                </strong>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <em style="color:#0a3622;">
+                                        Nenhuma habilidade abaixo do limiar para esta escola.
+                                    </em>
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+
+                {% endfor %}{# fim for escola #}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endfor %}{# fim for localidade #}
+
+{# Rodapé informativo #}
+<div class="card mt-4">
+    <div class="card-body" style="background:#e9ecef;">
+        <p class="text-muted mb-0">
+            * Média de habilidades calculada a partir das taxas de acerto SaBE por escola.
+            Habilidades com taxa abaixo de {{ limiar }}% são consideradas de baixo desempenho.
+        </p>
+    </div>
+</div>
+
+{% endif %}{# fim dados_prontos #}
+
+<style>
+body { background: #f8f9fa; font-family: Arial; }
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table { width: 100%; border-collapse: collapse; }
+th, td { padding: 6px; border: 1px solid #dee2e6; font-size: 0.8em; }
+th { background: #f8f9fa; }
+
+.badge-nivel {
+    font-size: 0.68em;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.badge-danger  { background: #f8d7da; color: #842029; }
+.badge-warning { background: #fff3cd; color: #664d03; }
+.badge-info    { background: #cff4fc; color: #055160; }
+.badge-success { background: #d1e7dd; color: #0a3622; }
+
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    .no-print,
+    .btn,
+    select,
+    button {
+        display: none !important;
+    }
+
+    body {
+        background: #fff;
+        font-size: 9pt;
+    }
+
+    .card {
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+        box-shadow: none;
+    }
+
+    table {
+        font-size: 8px;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    .collapse {
+        display: none !important;
+    }
+}
+</style>
+
+{% endblock %}

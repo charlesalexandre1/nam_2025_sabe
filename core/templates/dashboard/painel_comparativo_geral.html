@@ -10,12 +10,6 @@
     {% endif %}
 </h3>
 
-<!-- ================= LEGENDA ================= -->
-
-<!-- ================= MUNICIPAL ================= -->
-
-
-<!-- ================= COMPARATIVO ================= -->
 {% for disc_id, disc_data in dados_comparativos.items %}
     {% for serie_id, serie_data in disc_data.series.items %}
         {% if serie_data.anos_data %}
@@ -55,10 +49,41 @@
 
                         <td class="text-center">
                             {% if desempenho %}
-                                {{ desempenho.proficiencia_media|floatformat:1 }}
-                                <span class="small">
-                                    ({{ desempenho.alunos_avaliados }})
-                                </span>
+                                {% with valor_atual=desempenho.proficiencia_media %}
+
+                                    {{ valor_atual|floatformat:1 }}
+
+                                    {% if not forloop.first %}
+                                        {% with idx=forloop.counter0 %}
+                                        {% with idx_ant=idx|add:"-1" %}
+                                        {% with ano_ant=todos_anos|get_item:idx_ant %}
+                                        {% with desempenho_ant=serie_data.anos_data|dict_key:ano_ant|dict_key:esfera.id %}
+
+                                            {% if desempenho_ant %}
+                                                {% with valor_ant=desempenho_ant.proficiencia_media %}
+                                                {% with diff=valor_atual|sub:valor_ant %}
+
+                                                    {% if diff > 0 %}
+                                                        <span style="color:green; font-size:0.75em;">
+                                                            ↑ +{{ diff|floatformat:1 }}
+                                                        </span>
+                                                    {% elif diff < 0 %}
+                                                        <span style="color:red; font-size:0.75em;">
+                                                            ↓ {{ diff|floatformat:1 }}
+                                                        </span>
+                                                    {% endif %}
+
+                                                {% endwith %}
+                                                {% endwith %}
+                                            {% endif %}
+
+                                        {% endwith %}
+                                        {% endwith %}
+                                        {% endwith %}
+                                        {% endwith %}
+                                    {% endif %}
+
+                                {% endwith %}
                             {% else %}
                                 —
                             {% endif %}
@@ -89,7 +114,6 @@
     {% endfor %}
 {% endfor %}
 
-<!-- ================= OBS ================= -->
 <div class="card mt-4">
     <div class="card-body" style="background:#e9ecef;">
         <p class="text-muted">
@@ -145,19 +169,6 @@ th, td { padding:6px; border:1px solid #dee2e6; font-size:0.8em; }
     .card {
         page-break-inside: avoid;
         border:1px solid #ccc;
-    }
-
-    .chart-container-principal {
-        height:180px !important;
-        max-height:180px !important;
-        overflow:hidden !important;
-    }
-
-    canvas {
-        width:100% !important;
-        height:180px !important;
-        max-height:180px !important;
-        page-break-inside: avoid;
     }
 
     table {

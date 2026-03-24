@@ -19,3 +19,21 @@ def br_decimal(value, arg=1):
         return formatted
     except (ValueError, TypeError):
         return value
+    
+
+
+
+@register.filter
+def sub(value, arg):
+    try:
+        return float(value) - float(arg)
+    except:
+        return None
+
+@register.filter
+def get_item(lista, index):
+    try:
+        return lista[int(index)]
+    except:
+        return None
+    

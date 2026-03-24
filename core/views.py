@@ -1866,3 +1866,248 @@ def dashboard_desempenho(request):
         "dashboard/desempenho.html",
         context
     )
+
+
+
+
+    #desempenho por habilidade por esccola 23_03_2026
+
+    # views.py
+
+# views.py
+
+# views.py
+from django.db.models import Avg, Count, Q
+from django.views.generic import TemplateView
+from .models import (
+    ResultadoHabEscola, DesempenhoEscola,
+    Localidade, Serie, Disciplina
+)
+
+LIMIAR_PADRAO = 50.0
+
+
+class ComparativoLocalidadeView(TemplateView):
+    template_name = 'dashboard/comparativo_habilidade_escolas.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # ── Filtros GET ───────────────────────────────────────────────────
+        ano           = self.request.GET.get('ano')
+        serie_id      = self.request.GET.get('serie')
+        disciplina_id = self.request.GET.get('disciplina')
+        localidade_id = self.request.GET.get('localidade')
+        limiar        = float(self.request.GET.get('limiar', LIMIAR_PADRAO))
+
+        # ── Opções para o formulário ──────────────────────────────────────
+        context['anos'] = (
+            ResultadoHabEscola.objects
+            .values_list('ano', flat=True)
+            .distinct()
+            .order_by('-ano')
+        )
+        context['series']      = Serie.objects.order_by('nome')
+        context['disciplinas'] = Disciplina.objects.order_by('nome')
+        context['localidades'] = Localidade.objects.order_by('nome')
+        context['filtros'] = {
+            'ano':           int(ano)           if ano           else None,
+            'serie_id':      int(serie_id)      if serie_id      else None,
+            'disciplina_id': int(disciplina_id) if disciplina_id else None,
+            'localidade_id': int(localidade_id) if localidade_id else None,
+            'limiar':        limiar,
+        }
+
+        if not (ano and serie_id and disciplina_id):
+            context['dados_prontos'] = False
+            return context
+
+        context['dados_prontos'] = True
+        context['limiar'] = limiar
+
+        # ── Querysets base ────────────────────────────────────────────────
+        filtro_base = dict(ano=ano, serie_id=serie_id, disciplina_id=disciplina_id)
+        filtro_loc  = {'escola__localidade_id': localidade_id} if localidade_id else {}
+
+        # QS de Habilidades: Filtra por ano, série, disciplina, localidade
+        # E EXCLUI QUALQUER REGISTRO ONDE TX_ACERTO SEJA -1
+        qs_hab = ResultadoHabEscola.objects.filter(
+            **filtro_base, **filtro_loc
+        ).exclude(
+            tx_acerto=-1.00 # <--- AQUI ESTÁ A NOVA CONDIÇÃO DE EXCLUSÃO
+        ).select_related('escola', 'escola__localidade', 'hab')
+
+        # Agora, para garantir que uma escola inteira seja removida se *qualquer* de suas habilidades
+        # para o filtro atual tiver -1, precisamos de um passo intermediário.
+        # Primeiro, identificamos as escolas que possuem pelo menos UMA habilidade VÁLIDA (não -1).
+        escolas_com_habs_validas_ids = qs_hab.values_list('escola_id', flat=True).distinct()
+
+        # Filtra o qs_hab novamente para incluir apenas as escolas que têm habilidades válidas
+        qs_hab = qs_hab.filter(escola_id__in=escolas_com_habs_validas_ids)
+
+
+        # QS de Desempenho: Usado para buscar dados adicionais das escolas que JÁ ESTÃO no qs_hab
+        qs_desemp = DesempenhoEscola.objects.filter(
+            escola_id__in=escolas_com_habs_validas_ids, # Filtra pelo ID das escolas que têm habilidades válidas
+            **filtro_base, **filtro_loc
+        ).select_related('escola', 'escola__localidade')
+
+        # ─────────────────────────────────────────────────────────────────
+        # 1. DESEMPENHO POR ESCOLA
+        # ─────────────────────────────────────────────────────────────────
+        desempenho_por_escola = {
+            d.escola_id: d
+            for d in qs_desemp
+        }
+
+        # ─────────────────────────────────────────────────────────────────
+        # 2. ESTATÍSTICAS DE HABILIDADES POR ESCOLA
+        #    Este queryset já garante que só teremos escolas com dados de habilidades válidos
+        # ─────────────────────────────────────────────────────────────────
+        habs_por_escola_qs = (
+            qs_hab
+            .values(
+                'escola__id',
+                'escola__nome',
+                'escola__bairrodistrito',
+                'escola__localidade__id',
+                'escola__localidade__nome',
+            )
+            .annotate(
+                media_habs=Avg('tx_acerto'),
+                total_habs=Count('hab', distinct=True),
+                habs_baixo=Count(
+                    'hab',
+                    filter=Q(tx_acerto__lt=limiar),
+                    distinct=True
+                ),
+            )
+            .order_by('escola__localidade__nome', 'escola__nome')
+        )
+
+        # ─────────────────────────────────────────────────────────────────
+        # 3. MONTA ESTRUTURA POR LOCALIDADE
+        #    Popula apenas com as escolas que estão em habs_por_escola_qs
+        # ─────────────────────────────────────────────────────────────────
+        por_localidade = {}
+
+        for row in habs_por_escola_qs:
+            escola_id = row['escola__id']
+            loc_nome  = row['escola__localidade__nome'] or 'Sem Localidade'
+
+            desemp = desempenho_por_escola.get(escola_id) # Pode ser None se não houver DesempenhoEscola para essa escola/filtro
+
+            escola_data = {
+                'id':    escola_id,
+                'nome':  row['escola__nome'],
+                'bairro': row['escola__bairrodistrito'],
+
+                # Participação
+                'alunos_previstos':  desemp.alunos_previstos     if desemp else None,
+                'alunos_avaliados':  desemp.alunos_avaliados     if desemp else None,
+                'perc_avaliados':    desemp.percentual_avaliados if desemp else None,
+                'taxa_participacao': desemp.taxa_participacao    if desemp else None,
+
+                # Proficiência e níveis
+                'proficiencia_media': desemp.proficiencia_media    if desemp else None,
+                'abaixo_basico':      desemp.abaixo_basico         if desemp else None,
+                'basico':             desemp.basico                if desemp else None,
+                'adequado':           desemp.adequado              if desemp else None,
+                'avancado':           desemp.avancado              if desemp else None,
+                'variacao':           desemp.variacao_ano_anterior if desemp else None,
+                'posicao_municipio':  desemp.posicao_municipio     if desemp else None,
+                'meta':               desemp.meta_estabelecida     if desemp else None,
+
+                # Habilidades SaBE
+                'media_habs': row['media_habs'],
+                'total_habs': row['total_habs'],
+                'habs_baixo': row['habs_baixo'],
+            }
+
+            por_localidade.setdefault(loc_nome, {
+                'escolas':        [],
+                '_sum_previstos':  0,
+                '_sum_avaliados':  0,
+                '_sum_profic':     [],
+                '_sum_media_habs': [],
+            })
+
+            bloco = por_localidade[loc_nome]
+            bloco['escolas'].append(escola_data)
+
+            if desemp: # Só soma se houver dados de desempenho
+                bloco['_sum_previstos'] += desemp.alunos_previstos or 0
+                bloco['_sum_avaliados'] += desemp.alunos_avaliados or 0
+                if desemp.proficiencia_media is not None:
+                    bloco['_sum_profic'].append(float(desemp.proficiencia_media))
+            if row['media_habs'] is not None: # Só soma se houver média de habilidades
+                bloco['_sum_media_habs'].append(float(row['media_habs']))
+
+        # Totais consolidados por localidade
+        for loc_nome, bloco in por_localidade.items():
+            previstos = bloco['_sum_previstos']
+            avaliados = bloco['_sum_avaliados']
+            bloco['total_previstos'] = previstos
+            bloco['total_avaliados'] = avaliados
+            bloco['perc_avaliados_loc'] = (
+                round((avaliados / previstos) * 100, 1) if previstos else None
+            )
+            bloco['media_profic_loc'] = (
+                round(sum(bloco['_sum_profic']) / len(bloco['_sum_profic']), 2)
+                if bloco['_sum_profic'] else None
+            )
+            bloco['media_habs_loc'] = (
+                round(sum(bloco['_sum_media_habs']) / len(bloco['_sum_media_habs']), 2)
+                if bloco['_sum_media_habs'] else None
+            )
+            for k in ('_sum_previstos', '_sum_avaliados', '_sum_profic', '_sum_media_habs'):
+                del bloco[k]
+
+        context['por_localidade'] = dict(sorted(por_localidade.items()))
+
+        # ─────────────────────────────────────────────────────────────────
+        # 4. HABILIDADES COM BAIXO DESEMPENHO — VISÃO GERAL DA REDE
+        # ─────────────────────────────────────────────────────────────────
+        habs_rede = list(
+            qs_hab # Usa o qs_hab já filtrado
+            .values('hab__cd_hab', 'hab__dc_hab')
+            .annotate(
+                media_rede=Avg('tx_acerto'),
+                escolas_baixo=Count(
+                    'escola',
+                    filter=Q(tx_acerto__lt=limiar),
+                    distinct=True
+                ),
+                total_escolas=Count('escola', distinct=True),
+            )
+            .order_by('media_rede')
+        )
+
+        context['habs_rede']       = habs_rede
+        context['habs_baixo_rede'] = [h for h in habs_rede if h['media_rede'] < limiar]
+
+        # ─────────────────────────────────────────────────────────────────
+        # 5. HABILIDADES BAIXAS DETALHADAS POR ESCOLA (collapse)
+        # ─────────────────────────────────────────────────────────────────
+        habs_baixas_detalhe = (
+            qs_hab # Usa o qs_hab já filtrado
+            .filter(tx_acerto__lt=limiar)
+            .values(
+                'escola__id',
+                'hab__cd_hab',
+                'hab__dc_hab',
+                'tx_acerto',
+            )
+            .order_by('escola__id', 'tx_acerto')
+        )
+
+        habs_baixo_por_escola = {}
+        for row in habs_baixas_detalhe:
+            eid = row['escola__id']
+            habs_baixo_por_escola.setdefault(eid, []).append(row)
+
+        context['habs_baixo_por_escola'] = habs_baixo_por_escola
+
+        return context
+
+
