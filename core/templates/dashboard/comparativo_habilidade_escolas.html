@@ -4,23 +4,22 @@
 {% block content %}
 
 <h3 class="mb-4">
-    Comparativo por Localidade — SaBE
-</h3>
+    Analise de habilidades por Escola</h3>
 
 
 <div class="card">
     <div class="card-header" style="background: #d4d8dd;">
-        <h5 class="card-title mb-0 text-white">Filtros de Análise</h5>
+        <h5 class="card-title mb-0 text-white"></h5>
     </div>
     <div class="card-body">
         <form method="get">
             <div class="row g-3">
                 {# Grupo 1: Filtros Obrigatórios #}
                 <div class="col-md-6 border-end pe-md-4">
-                    <p class="fw-bold mb-2">Critérios Obrigatórios:</p>
+                    <p class="fw-bold mb-2"></p>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Ano *</label>
+                            <label class="form-label fw-semibold">Ano</label>
                             <select name="ano" class="form-select form-select-sm" required>
                                 <option value="">-- Selecione --</option>
                                 {% for a in anos %}
@@ -33,7 +32,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Série/Ano *</label>
+                            <label class="form-label fw-semibold">Série/Ano </label>
                             <select name="serie" class="form-select form-select-sm" required>
                                 <option value="">-- Selecione --</option>
                                 {% for s in series %}
@@ -46,7 +45,7 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Disciplina *</label>
+                            <label class="form-label fw-semibold">Disciplina </label>
                             <select name="disciplina" class="form-select form-select-sm" required>
                                 <option value="">-- Selecione --</option>
                                 {% for d in disciplinas %}
@@ -62,7 +61,7 @@
 
                 {# Grupo 2: Filtros Opcionais e Ação #}
                 <div class="col-md-6 ps-md-4">
-                    <p class="fw-bold mb-2">Outros Filtros e Ação:</p>
+                    <p class="fw-bold mb-2"></p>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Localidade</label>
@@ -173,7 +172,7 @@
                 </h5>
             </div>
             <div class="col-md-9">
-                <div style="display:flex; flex-wrap:wrap; gap:16px; font-size:0.82em; color:#fff;">
+                <div style="display:flex; flex-wrap:wrap; gap:16px; font-size:0.82em; color:#2f2e2e;">
 
                     <span>
                         Previstos: <strong>{{ bloco.total_previstos }}</strong>
@@ -231,7 +230,7 @@
                         <th colspan="2" class="text-center">Habilidades SaBE</th>
                         <th rowspan="2" class="text-center">Variação</th>
                         <th rowspan="2" class="text-center">Pos.</th>
-                        <th rowspan="2"></th>
+                       
                     </tr>
                     <tr>
                         <th class="text-center">Previstos</th>
@@ -336,12 +335,7 @@
 
                     {# Botão collapse - este será escondido na impressão #}
                     <td class="text-center no-print"> {# Adicionado 'no-print' para esconder o botão #}
-                        <button class="btn btn-sm btn-outline-secondary"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#habs-{{ escola.id }}"
-                                title="Ver habilidades baixas">
-                            Habs
-                        </button>
+                        
                     </td>
                 </tr>
 
