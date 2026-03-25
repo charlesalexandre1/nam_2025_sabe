@@ -6,10 +6,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
-<!-- ================= FILTROS ================= -->
+
 <div class="card no-print">
     <div class="card-header" style="background: #f3f5f7; color: white;">
-        <h5 class="card-title mb-0 text-white">Filtros</h5>
+        <h5 class="card-title mb-0 text-white"></h5>
     </div>
     <div class="card-body">
         <form method="get" class="filter-form">
@@ -37,8 +37,16 @@
 
             <div style="display:flex; gap:8px; align-items:flex-end">
                 <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{% url 'comparativo_geral' %}" class="btn btn-secondary">
+                    Geral
                 <a href="{% url 'comparativo_habilidades' %}" class="btn btn-secondary">
                     Habilidades
+                
+                </a>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:flex-end">
+               
                 </a>
             </div>
         </form>

@@ -30,7 +30,7 @@ from . import views
 
 urlpatterns = [
      path('admin/', admin.site.urls),
-    path('dashboard/', views.dashboard_principal, name='dashboard'),
+    path('', views.dashboard_principal, name='dashboard'),
     path('dashboard/dados-graficos/', views.dados_graficos, name='dados_graficos'),
     path('dashboard/escola/<int:escola_id>/', views.detalhes_escola, name='detalhes_escola'),
     path('dashboard/comparacao-anos/', views.comparacao_anos, name='comparacao_anos'),

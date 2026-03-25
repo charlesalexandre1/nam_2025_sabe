@@ -1,11 +1,96 @@
 {% extends "base.html" %}
-{% load painel_tags %} {# Mantenha se você usa tags personalizadas, caso contrário pode remover #}
+{% load painel_tags %}
 
 {% block content %}
 
+<h3 class="mb-4">
+    
+</h3>
+
+
+<div class="card">
+    <div class="card-header" style="background: #d4d8dd;">
+        <h5 class="card-title mb-0 text-white">Escolas</h5>
+    </div>
+    <div class="card-body">
+        {% if escolas %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Escola</th>
+                        <th>Localidade</th>
+                        <th class="text-center">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for escola in escolas %}
+                    <tr>
+                        <td><strong>{{ escola.nome }}</strong></td>
+                        <td style="color:#6c757d;">{{ escola.localidade }}</td>
+                        <td class="text-center">
+                            <a class="btn btn-primary btn-sm"
+                               href="{% url 'boletim_escola_html' escola.id %}">
+                                Gerar Boletim
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p class="text-muted">Nenhuma escola encontrada.</p>
+        {% endif %}
+    </div>
+</div>
+
+{# Rodapé informativo #}
+<div class="card mt-4">
+    <div class="card-body" style="background:#e9ecef;">
+        <p class="text-muted mb-0">
+            * Clique em "Gerar Boletim" para visualizar o desempenho
+            detalhado de cada escola.
+        </p>
+    </div>
+</div>
+
 <style>
-/* Impressão - Mantido para consistência, embora possa não ser relevante aqui */
+body { background: #f8f9fa; font-family: Arial; }
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table { width: 100%; border-collapse: collapse; }
+th, td { padding: 6px; border: 1px solid #dee2e6; font-size: 0.8em; }
+th { background: #f8f9fa; }
+
+.text-center { text-align: center; }
+.text-muted   { color: #6c757d; }
+
+.badge-nivel {
+    font-size: 0.68em;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.badge-danger  { background: #f8d7da; color: #842029; }
+.badge-warning { background: #fff3cd; color: #664d03; }
+.badge-info    { background: #cff4fc; color: #055160; }
+.badge-success { background: #d1e7dd; color: #0a3622; }
+
 @media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
     * {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -13,22 +98,19 @@
         text-shadow: none !important;
     }
 
-    body {
-        background: #fff;
-        font-size: 8pt;
-        margin: 0;
-        padding: 0;
-    }
-
-    .sidebar,
-    .header,
-    .filter-form,
-    .filter-form button,
-    .no-print {
+    .no-print,
+    .btn,
+    select,
+    button {
         display: none !important;
     }
 
-    .layout { display: block !important; }
+    body { background: #fff; font-size: 9pt; }
+
+    .sidebar,
+    .header { display: none !important; }
+
+    .layout  { display: block !important; }
 
     .main {
         width: 100% !important;
@@ -42,98 +124,16 @@
         width: 100% !important;
     }
 
-    .boletim-header p {
-        margin: 0;
-        font-size: 8px;
-        line-height: 1.1;
-        color: #000;
+    .card {
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+        box-shadow: none;
     }
+
+    table { font-size: 9px; width: 100% !important; }
+    th, td { padding: 2px 3px !important; }
+    thead { display: table-header-group; }
 }
-</style>
-
-<!-- Card principal para a lista de escolas -->
-<div class="card">
-    <h3>Selecione a Escola para Gerar o Boletim</h3>
-
-    {% if escolas %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Escola</th>
-                    <th>Localidade</th>
-                    <th class="text-center">Ação</th> {# Adicionado text-center para alinhar o botão #}
-                </tr>
-            </thead>
-            <tbody>
-                {% for escola in escolas %}
-                <tr>
-                    <td>{{ escola.nome }}</td>
-                    <td>{{ escola.localidade }}</td>
-                    <td class="text-center"> {# Adicionado text-center para alinhar o botão #}
-                        <a class="btn btn-primary" href="{% url 'boletim_escola_html' escola.id %}">
-                            Gerar Boletim
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p class="text-muted">Nenhuma escola encontrada.</p>
-    {% endif %}
-</div>
-
-<!-- Estilos globais do seu padrão (copiados do template anterior) -->
-<style>
-    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; }
-    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-    .card { background: white; border-radius: 8px; padding: 20px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-
-    /* Estilos para os totalizadores (stats) - mantidos para consistência, mesmo que não usados aqui */
-    .stats { display: flex; gap: 20px; margin-bottom: 10px; }
-    .stat { flex: 1; text-align: center; }
-    .stat p { font-size: 2em; font-weight: bold; margin: 10px 0; color: #007bff; }
-    .stat small { color: #6c757d; font-size: 0.85em; }
-
-    /* Estilos para a tabela */
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 7px; border: 1px solid #dee2e6; text-align: left; }
-    th { background: #e9ecef; font-weight: 600; color: #1e293b; } /* Cor de fundo do cabeçalho da tabela e cor do texto */
-
-    /* Estilos para o formulário de filtro - mantidos para consistência */
-    .filter-form { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
-    .filter-form select,
-    .filter-form input[type="number"] {
-        padding: 8px;
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        min-width: 160px;
-    }
-    .filter-form button { background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
-    .filter-form button:hover { background: #0056b3; }
-
-    /* Classes de utilidade */
-    .text-center { text-align: center; }
-    .text-muted { color: #6c757d; }
-    .small { font-size: 0.85em; }
-
-    /* Estilos para o botão "Gerar Boletim" */
-    .btn-primary {
-        background: #007bff; /* Cor primária do seu padrão */
-        color: white;
-        padding: 8px 16px; /* Ajustado para um tamanho mais comum */
-        border-radius: 4px; /* Borda mais suave */
-        text-decoration: none;
-        display: inline-block; /* Para que padding e margin funcionem */
-        font-size: 0.9em; /* Tamanho de fonte um pouco menor */
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-primary:hover {
-        background: #0056b3; /* Cor mais escura no hover */
-    }
 </style>
 
 {% endblock %}

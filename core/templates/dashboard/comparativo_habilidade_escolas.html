@@ -8,7 +8,7 @@
 </h3>
 
 
-<div class="card mb-4">
+<div class="card">
     <div class="card-header" style="background: #d4d8dd;">
         <h5 class="card-title mb-0 text-white">Filtros de Análise</h5>
     </div>
@@ -280,7 +280,7 @@
                     {# Níveis de aprendizagem #}
                     <td class="text-center
                         {% if escola.abaixo_basico is not None and escola.abaixo_basico > 30 %}
-                            " style="color:#842029; font-weight:600;"
+                            " style="color:#f0aab0; font-weight:600;"
                         {% else %}"{% endif %}>
                         {% if escola.abaixo_basico is not None %}{{ escola.abaixo_basico|floatformat:1 }}%{% else %}—{% endif %}
                     </td>
@@ -334,8 +334,8 @@
                         {% if escola.posicao_municipio is not None %}{{ escola.posicao_municipio }}º{% else %}—{% endif %}
                     </td>
 
-                    {# Botão collapse #}
-                    <td class="text-center">
+                    {# Botão collapse - este será escondido na impressão #}
+                    <td class="text-center no-print"> {# Adicionado 'no-print' para esconder o botão #}
                         <button class="btn btn-sm btn-outline-secondary"
                                 data-bs-toggle="collapse"
                                 data-bs-target="#habs-{{ escola.id }}"
@@ -348,7 +348,7 @@
                 {# Linha colapsável — habilidades baixas da escola #}
                 <tr>
                     <td colspan="15" style="padding:0; border:0;">
-                        <div class="collapse" id="habs-{{ escola.id }}">
+                        <div class="collapse show" id="habs-{{ escola.id }}"> {# Adicionado 'show' para garantir que esteja visível por padrão na impressão #}
                             <div style="padding:12px; background:#f8f9fa; border-bottom:1px solid #dee2e6;">
                                 {% with lista=habs_baixo_por_escola|dict_get:escola.id %}
                                 {% if lista %}
@@ -406,7 +406,7 @@
 {% endif %}{# fim dados_prontos #}
 
 <style>
-body { background: #f8f9fa; font-family: Arial; }
+body { background: #8db8e4; font-family: Arial; }
 
 .card {
     background: white;
@@ -417,8 +417,8 @@ body { background: #f8f9fa; font-family: Arial; }
 }
 
 .table { width: 100%; border-collapse: collapse; }
-th, td { padding: 6px; border: 1px solid #dee2e6; font-size: 0.8em; }
-th { background: #f8f9fa; }
+th, td { padding: 6px; border: 1px solid #a3c9f0; font-size: 0.8em; }
+th { background: #faf9f8; } /* Mantido para cabeçalhos de tabela */
 
 .badge-nivel {
     font-size: 0.68em;
@@ -434,7 +434,7 @@ th { background: #f8f9fa; }
 
 @media print {
     @page {
-        size: A4 landscape;
+        size: A4 landscape; /* Alterado para landscape para mais colunas */
         margin: 10mm;
     }
 
@@ -457,14 +457,24 @@ th { background: #f8f9fa; }
     }
 
     table {
-        font-size: 8px;
+        font-size: 8px; /* Ajustado para caber mais colunas */
     }
 
     thead {
         display: table-header-group;
     }
 
+    /* REMOVIDO: .collapse { display: none !important; } */
+    /* ADICIONADO: Garante que os elementos com a classe 'collapse' sejam exibidos */
     .collapse {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Opcional: Esconder o botão "Habs" na impressão */
+    .no-print {
         display: none !important;
     }
 }
