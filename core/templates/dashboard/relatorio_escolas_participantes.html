@@ -4,48 +4,138 @@
 {% block content %}
 
 <style>
-/* Impressão */
 @media print {
-    * {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        box-shadow: none !important;
-        text-shadow: none !important;
+
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    .no-print,
+    .btn,
+    select {
+        display:none !important;
     }
 
     body {
-        background: #fff;
-        font-size: 8pt;
-        margin: 0;
-        padding: 0;
+        background:#fff;
+        font-size:9pt;
     }
 
-    .sidebar,
-    .header,
-    .filter-form,
-    .filter-form button,
-    .no-print {
-        display: none !important;
+    .card {
+        page-break-inside: avoid;
+        border:1px solid #ccc;
     }
 
-    .layout { display: block !important; }
-
-    .main {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
+    table {
+        font-size:9px;
     }
 
-    .content {
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
+    thead {
+        display: table-header-group;
     }
 }
+/* ── Tela ───────────────────────────────────────────── */
+body { font-family: Arial; background: #f8f9fa; }
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(240, 234, 234, 0.1);
+}
+
+.stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.stat  { flex: 1; text-align: center; min-width: 100px; }
+.stat p { font-size: 20px; font-weight: bold; color: #e2953d; margin: 4px 0; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 6px 8px; border: 1px solid #dee2e6; }
+th { background: #e9ecef; }
+
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+
+/* Cabeçalho de cada escola */
+.escola-header {
+    background: #f9f9fa;
+    color: #faf8f8;
+    padding: 8px 12px;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.escola-header h4 { margin: 0; font-size: 14px; }
+.escola-header span { font-size: 12px; opacity: .85; }
+
+/* Linhas de série (agrupador) */
+.row-serie-header td {
+    background: #cfe2ff;
+    font-weight: 700;
+    font-size: 0.85em;
+    color: #084298;
+}
+
+/* Linhas de disciplina */
+.row-disciplina td {
+    background: #fff;
+    font-size: 0.85em;
+}
+
+/* Total da série */
+.row-total-serie td {
+    background: #fafafa;
+    font-weight: 600;
+    font-size: 0.82em;
+}
+
+/* Total da escola */
+.row-total-escola td {
+    background: #d4edda;
+    font-weight: 700;
+}
+
+/* Total geral */
+tfoot tr td {
+    background: #faf9f9 !important;
+    color: #1a1919 !important;
+    font-weight: 700;
+}
+
+.badge-participacao {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+.badge-ok   { background: #d4edda; color: #155724; }
+.badge-warn { background: #fff3cd; color: #856404; }
+.badge-bad  { background: #f8d7da; color: #721c24; }
+
+.filter-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.filter-form label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 3px; }
+.filter-form input,
+.filter-form select {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.btn { padding: 7px 14px; border-radius: 4px; text-decoration: none; cursor: pointer; border: none; }
+.btn-primary   { background: #007bff; color: #fff; }
+.btn-secondary { background: #6c757d; color: #fff; }
 </style>
 
-<!-- Filtros -->
-<div class="card">
+<!-- ══════════════════════════════════════════════════
+     FILTROS
+════════════════════════════════════════════════════ -->
+<div class="card no-print">
     <form method="get" class="filter-form">
 
         <div>
@@ -60,37 +150,32 @@
                 {% endfor %}
             </select>
         </div>
-        <div>
-            <label>Localidade:</label>
-            <select name="localidade">
-                <option value="">Todas</option>
-                {% for loc in Serie_id %}
-                    <option value="{{ loc.id }}"
-                        {% if filtro_localidade == loc.id|stringformat:"s" %}selected{% endif %}>
-                        {{ loc.nome }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
 
         <div>
             <label>Ano Início:</label>
-            <input type="number" name="ano_inicio" value="{{ filtro_ano_inicio }}">
+            <input type="number" name="ano_inicio" value="{{ filtro_ano_inicio }}" style="width:90px;">
         </div>
 
         <div>
             <label>Ano Fim:</label>
-            <input type="number" name="ano_fim" value="{{ filtro_ano_fim }}">
+            <input type="number" name="ano_fim" value="{{ filtro_ano_fim }}" style="width:90px;">
         </div>
 
-        <button type="submit">Filtrar</button>
-        <a href="?" class="btn btn-secondary">Limpar</a>
+        <div>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="?" class="btn btn-secondary">Limpar</a>
+        </div>
+
+        <div style="margin-left:auto;">
+            <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
+        </div>
 
     </form>
 </div>
 
-<!-- Totalizadores -->
+<!-- ══════════════════════════════════════════════════
+     TOTALIZADORES GERAIS
+════════════════════════════════════════════════════ -->
 {% if dados %}
 <div class="card">
     <div class="stats">
@@ -103,12 +188,12 @@
             <p>{{ total_series_count }}</p>
         </div>
         <div class="stat">
-            <small>Total Avaliados</small>
-            <p>{{ grand_total_avaliados }}</p>
-        </div>
-        <div class="stat">
             <small>Total Previstos</small>
             <p>{{ grand_total_previstos }}</p>
+        </div>
+        <div class="stat">
+            <small>Total Avaliados</small>
+            <p>{{ grand_total_avaliados }}</p>
         </div>
         <div class="stat">
             <small>% Participação Geral</small>
@@ -116,114 +201,148 @@
         </div>
     </div>
 </div>
-{% endif %}
 
-<!-- Tabela -->
-<div class="card">
-    <h3>Relatório de Escolas Participantes - SABE</h3>
+<!-- ══════════════════════════════════════════════════
+     TÍTULO DO RELATÓRIO
+════════════════════════════════════════════════════ -->
+<div class="card" style="padding-bottom: 5px;">
+    <h3 style="margin:0 0 4px 0;">Relatório de Escolas Participantes — SABE</h3>
+    <small class="text-muted">
+        Participação por escola › série › disciplina
+        {% if filtro_ano_inicio or filtro_ano_fim %}
+            &nbsp;|&nbsp; Período:
+            {{ filtro_ano_inicio|default:"início" }} – {{ filtro_ano_fim|default:"atual" }}
+        {% endif %}
+    </small>
+</div>
 
-    {% if dados %}
+<!-- ══════════════════════════════════════════════════
+     BLOCO POR ESCOLA
+════════════════════════════════════════════════════ -->
+{% for escola in dados %}
+<div class="escola-bloco">
+
+    <!-- Cabeçalho da escola -->
+    <div class="escola-header">
+        <h4>{{ escola.nome }}</h4>
+        <span>
+            {{ escola.localidade }}
+            &nbsp;|&nbsp; Ano: {{ escola.ano }}
+            &nbsp;|&nbsp; Participação:
+            <strong>{{ escola.percentual_total|floatformat:1 }}%</strong>
+            ({{ escola.total_avaliados }} / {{ escola.total_previstos }})
+        </span>
+    </div>
+
     <table>
-
         <thead>
             <tr>
-                <th>Ano</th>
-                <th>Escola</th>
-                <th>Localidade</th>
-                <th>Série</th>
-                <th class="text-center">Previstos</th>
-                <th class="text-center">Avaliados</th>
-                <th class="text-center">% Participação</th>
+                <th style="width:18%;">Série</th>
+                <th style="width:28%;">Disciplina</th>
+                <th class="text-center" style="width:14%;">Previstos</th>
+                <th class="text-center" style="width:14%;">Avaliados</th>
+                <th class="text-center" style="width:13%;">% Part.</th>
             </tr>
         </thead>
 
         <tbody>
-        {% for escola in dados %}
+        {% for serie in escola.series %}
 
-            {% for serie in escola.series %}
-            <tr>
+            {% for disciplina in serie.disciplinas %}
+            <tr class="row-disciplina">
 
+                {# Célula de série só aparece na primeira disciplina, com rowspan #}
                 {% if forloop.first %}
-                <td rowspan="{{ escola.series|length|add:1 }}">{{ escola.ano }}</td>
-                <td rowspan="{{ escola.series|length|add:1 }}">{{ escola.nome }}</td>
-                <td rowspan="{{ escola.series|length|add:1 }}">{{ escola.localidade }}</td>
+                <td rowspan="{{ serie.disciplinas|length }}"
+                    style="vertical-align:middle; font-weight:600; background:#ffffff; color:#99a9c4;">
+                    {{ serie.nome }}
+                </td>
                 {% endif %}
 
-                <td>{{ serie.nome }}</td>
-
-                <td class="text-center">{{ serie.previstos }}</td>
-                <td class="text-center">{{ serie.avaliados }}</td>
-
+                <td>{{ disciplina.nome }}</td>
+                <td class="text-center">{{ disciplina.previstos }}</td>
+                <td class="text-center">{{ disciplina.avaliados }}</td>
+                
                 <td class="text-center">
-                    {{ serie.percentual|floatformat:1 }}%
+                    {% with p=disciplina.percentual|floatformat:1 %}
+                        {% if disciplina.percentual >= 80 %}
+                            <span class="badge-participacao badge-ok">{{ p }}%</span>
+                        {% elif disciplina.percentual >= 50 %}
+                            <span class="badge-participacao badge-warn">{{ p }}%</span>
+                        {% else %}
+                            <span class="badge-participacao badge-bad">{{ p }}%</span>
+                        {% endif %}
+                    {% endwith %}
                 </td>
-
             </tr>
             {% endfor %}
 
-            <!-- TOTAL ESCOLA -->
-            <tr style="background:#e9ecef; font-weight:600;">
-                <td>Total</td>
-                <td class="text-center">{{ escola.total_previstos }}</td>
-                <td class="text-center">{{ escola.total_avaliados }}</td>
-                <td class="text-center">{{ escola.percentual_total|floatformat:1 }}%</td>
+            <!-- Total da Série -->
+            <tr class="row-total-serie">
+                <td colspan="2" style="text-align:right; padding-right:12px;">
+                    ↳ Total {{ serie.nome }}
+                </td>
+                <td class="text-center">{{ serie.previstos }}</td>
+                <td class="text-center">{{ serie.avaliados }}</td>
+                
+                <td class="text-center">{{ serie.percentual|floatformat:1 }}%</td>
             </tr>
 
         {% endfor %}
         </tbody>
 
-        <!-- TOTAL GERAL -->
+        <!-- Total da Escola -->
         <tfoot>
-            <tr>
-                <td colspan="4"><strong>TOTAL GERAL</strong></td>
-                <td class="text-center"><strong>{{ grand_total_previstos }}</strong></td>
-                <td class="text-center"><strong>{{ grand_total_avaliados }}</strong></td>
-                <td class="text-center"><strong>{{ percentual_geral|floatformat:1 }}%</strong></td>
+            <tr class="row-total-escola">
+                <td colspan="2"><strong>Total Escola</strong></td>
+                <td class="text-center"><strong>{{ escola.total_previstos }}</strong></td>
+                <td class="text-center"><strong>{{ escola.total_avaliados }}</strong></td>
+               
+                <td class="text-center">
+                    <strong>{{ escola.percentual_total|floatformat:1 }}%</strong>
+                </td>
             </tr>
         </tfoot>
-
     </table>
 
-    {% else %}
-        <p class="text-muted">Nenhum dado encontrado.</p>
-    {% endif %}
+</div><!-- /escola-bloco -->
+{% endfor %}
+
+<!-- ══════════════════════════════════════════════════
+     TOTAL GERAL (resumo final)
+════════════════════════════════════════════════════ -->
+<div class="card">
+    <table>
+        <tfoot>
+            <tr>
+                <td colspan="2"><strong>TOTAL GERAL</strong></td>
+                <td class="text-center"><strong>{{ grand_total_previstos }}</strong></td>
+                <td class="text-center"><strong>{{ grand_total_avaliados }}</strong></td>
+                <td class="text-center">—</td>
+                <td class="text-center">
+                    <strong>{{ percentual_geral|floatformat:1 }}%</strong>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
 </div>
 
-<!-- OBS -->
+{% else %}
+<div class="card">
+    <p style="color:#6c757d;">Nenhum dado encontrado para os filtros selecionados.</p>
+</div>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════
+     OBSERVAÇÃO
+════════════════════════════════════════════════════ -->
 <div class="card" style="background:#e9ecef;">
-    <p class="text-muted">
-        * Percentual = (avaliados / previstos) × 100.
+    <p style="color:#6c757d; margin:0; font-size:12px;">
+        * Percentual de participação = (avaliados ÷ previstos) × 100.<br>
+        * Cores: <span class="badge-participacao badge-ok">≥ 80% bom</span>
+                 <span class="badge-participacao badge-warn">50–79% atenção</span>
+                 <span class="badge-participacao badge-bad">< 50% crítico</span>
     </p>
 </div>
-
-<style>
-body { font-family: Arial; background:#f8f9fa; }
-
-.card {
-    background:white;
-    border-radius:8px;
-    padding:15px;
-    margin:10px 0;
-    box-shadow:0 2px 4px rgba(0,0,0,0.1);
-}
-
-.stats { display:flex; gap:20px; }
-.stat { flex:1; text-align:center; }
-.stat p { font-size:20px; font-weight:bold; color:#007bff; }
-
-table { width:100%; border-collapse:collapse; }
-th,td { padding:6px; border:1px solid #dee2e6; }
-
-th { background:#e9ecef; }
-
-.text-center { text-align:center; }
-
-.filter-form { display:flex; gap:10px; flex-wrap:wrap; }
-.filter-form input, .filter-form select {
-    padding:6px;
-    border:1px solid #ccc;
-    border-radius:4px;
-}
-</style>
 
 {% endblock %}
