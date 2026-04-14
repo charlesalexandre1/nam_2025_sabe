@@ -675,3 +675,249 @@ class ResultadoHabEscola(models.Model):
 
     def __str__(self):
         return f"{self.ano} - {self.escola.nome} - {self.disciplina} - {self.serie} - {self.hab.cd_hab}"
+    
+
+
+    #SAEB  resultadoo
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+
+
+class ResultPreliminarSaeb(models.Model):
+    escola = models.ForeignKey(
+        Escola,
+        on_delete=models.CASCADE,
+        related_name='resultados_preliminares',
+        verbose_name='Escola'
+    )
+
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        verbose_name='Série/Ano'
+    )
+
+    ano = models.PositiveIntegerField('Ano')
+
+    alunos_previstos = models.PositiveIntegerField(
+        'Alunos Previstos',
+        validators=[MinValueValidator(0)]
+    )
+
+    alunos_avaliados = models.PositiveIntegerField(
+        'Alunos Avaliados',
+        validators=[MinValueValidator(0)]
+    )
+
+    taxa_participacao = models.DecimalField(
+        'Taxa de Participação (%)',
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        null=True,
+        blank=True
+    )
+
+    media_lp = models.DecimalField(
+        'Média Língua Portuguesa',
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True
+    )
+
+    media_mt = models.DecimalField(
+        'Média Matemática',
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True
+    )
+
+    # Campo útil para análise rápida (opcional)
+    media_geral = models.DecimalField(
+        'Média Geral',
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    data_atualizacao = models.DateTimeField(auto_now=True)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Resultado Preliminar SAEB'
+        verbose_name_plural = 'Resultados Preliminares SAEB'
+
+        unique_together = ['escola', 'serie', 'ano']
+
+        ordering = ['-ano', 'escola__nome']
+
+        indexes = [
+            models.Index(fields=['ano']),
+            models.Index(fields=['escola', 'ano']),
+            models.Index(fields=['ano', 'serie']),
+        ]
+
+    def __str__(self):
+        return f"{self.escola.nome} - {self.serie} - {self.ano}"
+
+    # ----------------------------
+    # 🔢 Cálculos
+    # ----------------------------
+    def calcular_taxa_participacao(self):
+        if self.alunos_previstos > 0:
+            return round((self.alunos_avaliados / self.alunos_previstos) * 100, 2)
+        return 0
+
+    def calcular_media_geral(self):
+        if self.media_lp is not None and self.media_mt is not None:
+            return round((self.media_lp + self.media_mt) / 2, 2)
+        return None
+
+    # ----------------------------
+    # 🛑 Validações fortes
+    # ----------------------------
+    def clean(self):
+        erros = {}
+
+        if self.alunos_avaliados > self.alunos_previstos:
+            erros['alunos_avaliados'] = 'Não pode ser maior que alunos previstos.'
+
+        if self.ano < 2000 or self.ano > 2100:
+            erros['ano'] = 'Ano inválido.'
+
+        if erros:
+            raise ValidationError(erros)
+
+    # ----------------------------
+    # 💾 Save inteligente
+    # ----------------------------
+    def save(self, *args, **kwargs):
+
+        # Validação completa antes de salvar
+        self.full_clean()
+
+        # Calcula taxa automaticamente
+        self.taxa_participacao = self.calcular_taxa_participacao()
+
+        # Calcula média geral
+        self.media_geral = self.calcular_media_geral()
+
+        super().save(*args, **kwargs)
+
+
+    from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+
+
+class ResultPreliminarSaeb_2025(models.Model):
+    escola = models.ForeignKey(
+        Escola,
+        on_delete=models.CASCADE,
+        related_name='resultados_preliminares_2025'
+    )
+
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE
+    )
+
+    ano = models.PositiveIntegerField()
+
+    alunos_previstos = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)]
+    )
+
+    alunos_avaliados = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)]
+    )
+
+    taxa_participacao = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    taxa_aprovacao = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    media_lp = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    media_mt = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    media_geral = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    ideb_estimado = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    data_atualizacao = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['escola', 'serie', 'ano']
+        ordering = ['-ano']
+
+    def __str__(self):
+        return f"{self.escola} - {self.ano}"
+
+    # ----------------------------
+    # 🔢 CÁLCULOS
+    # ----------------------------
+    def calcular_taxa_participacao(self):
+        if self.alunos_previstos > 0:
+            return round((self.alunos_avaliados / self.alunos_previstos) * 100, 2)
+        return 0
+
+    def calcular_media_geral(self):
+        if self.media_lp is not None and self.media_mt is not None:
+            return round((self.media_lp + self.media_mt) / 2, 2)
+        return None
+
+    def calcular_ideb(self):
+        if self.media_geral is not None and self.taxa_aprovacao is not None:
+            return round((self.media_geral / 10) * (self.taxa_aprovacao / 100), 2)
+        return None
+
+    # ----------------------------
+    # 🛑 VALIDAÇÃO
+    # ----------------------------
+    def clean(self):
+        if self.alunos_avaliados > self.alunos_previstos:
+            raise ValidationError("Avaliados não pode ser maior que previstos.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+
+        self.taxa_participacao = self.calcular_taxa_participacao()
+        self.media_geral = self.calcular_media_geral()
+        self.ideb_estimado = self.calcular_ideb()
+
+        super().save(*args, **kwargs)
