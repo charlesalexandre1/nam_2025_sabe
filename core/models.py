@@ -811,20 +811,21 @@ class ResultPreliminarSaeb(models.Model):
         super().save(*args, **kwargs)
 
 
-    from django.db import models
+from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 
 class ResultPreliminarSaeb_2025(models.Model):
     escola = models.ForeignKey(
-        Escola,
+        'Escola',
         on_delete=models.CASCADE,
         related_name='resultados_preliminares_2025'
     )
 
     serie = models.ForeignKey(
-        Serie,
+        'Serie',
         on_delete=models.CASCADE
     )
 
@@ -889,35 +890,113 @@ class ResultPreliminarSaeb_2025(models.Model):
         return f"{self.escola} - {self.ano}"
 
     # ----------------------------
+    # 📊 LIMITES SAEB
+    # ----------------------------
+    LIMITES_SAEB = {
+        "5": {
+            "mt": (Decimal('60'), Decimal('322')),
+            "lp": (Decimal('49'), Decimal('324')),
+        },
+        "9": {
+            "mt": (Decimal('100'), Decimal('400')),
+            "lp": (Decimal('100'), Decimal('400')),
+        }
+    }
+
+    # ----------------------------
     # 🔢 CÁLCULOS
     # ----------------------------
     def calcular_taxa_participacao(self):
-        if self.alunos_previstos > 0:
-            return round((self.alunos_avaliados / self.alunos_previstos) * 100, 2)
-        return 0
+        if self.alunos_previstos and self.alunos_previstos > 0:
+            return round(
+                (Decimal(self.alunos_avaliados) / Decimal(self.alunos_previstos)) * 100,
+                2
+            )
+        return Decimal('0.00')
 
-    def calcular_media_geral(self):
-        if self.media_lp is not None and self.media_mt is not None:
-            return round((self.media_lp + self.media_mt) / 2, 2)
+    def calcular_nota_padronizada(self, proficiencia, limite_inferior, limite_superior):
+        if proficiencia is None:
+            return None
+
+        if limite_superior == limite_inferior:
+            return None
+
+        return (
+            (Decimal(proficiencia) - limite_inferior) /
+            (limite_superior - limite_inferior)
+        ) * Decimal('10')
+
+    def obter_limites(self):
+        nome_serie = str(self.serie).lower()
+
+        if "5" in nome_serie:
+            return self.LIMITES_SAEB["5"]
+
+        if "9" in nome_serie:
+            return self.LIMITES_SAEB["9"]
+
         return None
 
+    def calcular_media_padronizada(self):
+        if self.media_lp is None or self.media_mt is None:
+            return None
+
+        limites = self.obter_limites()
+        if not limites:
+            return None
+
+        mt_inf, mt_sup = limites["mt"]
+        lp_inf, lp_sup = limites["lp"]
+
+        nota_mt = self.calcular_nota_padronizada(self.media_mt, mt_inf, mt_sup)
+        nota_lp = self.calcular_nota_padronizada(self.media_lp, lp_inf, lp_sup)
+
+        if nota_mt is None or nota_lp is None:
+            return None
+
+        return (nota_mt + nota_lp) / Decimal('2')
+
+    def calcular_indicador_rendimento(self):
+        """
+        Aceita:
+        - 50   → 0.50
+        - 0.50 → 0.50
+        """
+        if self.taxa_aprovacao is None:
+            return None
+
+        taxa = Decimal(self.taxa_aprovacao)
+
+        if taxa <= 1:
+            return taxa  # já está em proporção
+
+        return taxa / Decimal('100')
+
     def calcular_ideb(self):
-        if self.media_geral is not None and self.taxa_aprovacao is not None:
-            return round((self.media_geral / 10) * (self.taxa_aprovacao / 100), 2)
+        N = self.calcular_media_padronizada()
+        P = self.calcular_indicador_rendimento()
+
+        if N is not None and P is not None:
+            return round(N * P, 2)
+
         return None
 
     # ----------------------------
     # 🛑 VALIDAÇÃO
     # ----------------------------
     def clean(self):
-        if self.alunos_avaliados > self.alunos_previstos:
-            raise ValidationError("Avaliados não pode ser maior que previstos.")
+        if self.alunos_previstos is not None and self.alunos_avaliados is not None:
+            if self.alunos_avaliados > self.alunos_previstos:
+                raise ValidationError("Avaliados não pode ser maior que previstos.")
 
+    # ----------------------------
+    # 💾 SAVE
+    # ----------------------------
     def save(self, *args, **kwargs):
         self.full_clean()
 
         self.taxa_participacao = self.calcular_taxa_participacao()
-        self.media_geral = self.calcular_media_geral()
+        self.media_geral = self.calcular_media_padronizada()
         self.ideb_estimado = self.calcular_ideb()
 
         super().save(*args, **kwargs)

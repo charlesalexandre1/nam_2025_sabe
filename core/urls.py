@@ -48,7 +48,8 @@ urlpatterns = [
     path('dashboard/comparativo-habilidades/', views.comparativo_habilidades, name='comparativo_habilidades'),
     path('dashboard/desempenho/', views.dashboard_desempenho, name='dashboard_desempenho'),
     path('dashboard/comparativo-geral/', views.painel_comparativo_geral, name='comparativo_geral'),
-    path('dashboard/comparativo_habilidade_escolas/', views.ComparativoLocalidadeView.as_view(), name='comparativo_habilidade_escolas')
+    path('dashboard/comparativo_habilidade_escolas/', views.ComparativoLocalidadeView.as_view(), name='comparativo_habilidade_escolas'),
+    path('dashboard/relatorio-resultado-preliminar-saeb-2025/', views.relatorio_resultado_preliminar_saeb_2025, name='relatorio_resultado_preliminar_saeb_2025'),
 ]
     
 

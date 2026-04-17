@@ -134,3 +134,87 @@ class ResultadoHabEscolaAdmin(admin.ModelAdmin):
     def get_cd_hab(self, obj):
         return obj.hab.cd_hab
     get_cd_hab.short_description = 'Código'
+
+from django.contrib import admin
+from .models import ResultPreliminarSaeb_2025
+
+
+@admin.register(ResultPreliminarSaeb_2025)
+class ResultPreliminarSaeb2025Admin(admin.ModelAdmin):
+
+    # 🔹 Colunas exibidas na lista
+    list_display = (
+        'escola',
+        'serie',
+        'ano',
+        'media_lp',
+        'media_mt',
+        'media_geral',
+        'taxa_aprovacao',
+        'taxa_participacao',
+        'ideb_estimado',
+    )
+
+    # 🔹 Filtros laterais
+    list_filter = (
+        'ano',
+        'serie',
+        'escola',
+    )
+
+    # 🔹 Campo de busca
+    search_fields = (
+        'escola__nome',
+        'escola__inep',
+    )
+
+    # 🔹 Ordenação padrão
+    ordering = ('-ano', 'escola__nome')
+
+    # 🔹 Campos somente leitura
+    readonly_fields = (
+        'taxa_participacao',
+        'media_geral',
+        'ideb_estimado',
+        'data_atualizacao',
+    )
+
+    # 🔹 Organização do formulário
+    fieldsets = (
+        ('📌 Identificação', {
+            'fields': ('escola', 'serie', 'ano')
+        }),
+
+        ('👥 Participação', {
+            'fields': (
+                'alunos_previstos',
+                'alunos_avaliados',
+                'taxa_participacao',
+            )
+        }),
+
+        ('📊 Desempenho', {
+            'fields': (
+                'media_lp',
+                'media_mt',
+                'media_geral',
+            )
+        }),
+
+        ('🎯 Indicadores', {
+            'fields': (
+                'taxa_aprovacao',
+                'ideb_estimado',
+            )
+        }),
+
+        ('⚙️ Sistema', {
+            'fields': ('data_atualizacao',),
+        }),
+    )
+
+    # 🔹 Otimização de carregamento
+    list_select_related = ('escola', 'serie')
+
+    # 🔹 Paginação
+    list_per_page = 25

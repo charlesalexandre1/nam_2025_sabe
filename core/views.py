@@ -2180,3 +2180,275 @@ class ComparativoLocalidadeView(TemplateView):
         return context
 
 
+#view IDEB
+# views.py
+
+from collections import defaultdict
+from django.shortcuts import render
+from django.db.models import Max, Min, Avg
+
+from .models import ResultPreliminarSaeb_2025, Localidade
+
+
+# views.py
+
+from collections import defaultdict
+from django.shortcuts import render
+from django.db.models import Max, Min, Avg
+
+# Importe os models necessários
+from .models import ResultPreliminarSaeb_2025, Localidade, Serie, Escola
+
+
+def relatorio_resultado_preliminar_saeb_2025(request):
+
+    queryset = ResultPreliminarSaeb_2025.objects.select_related(
+        'escola',
+        'escola__localidade',
+        'serie',
+    )
+
+    # ═══════════════════════════════════════════
+    #  FILTROS
+    # ═══════════════════════════════════════════
+    localidade_id  = request.GET.get('localidade')
+    escola_filtro  = request.GET.get('escola')
+    serie_filtro   = request.GET.get('serie')
+    ano_inicio     = request.GET.get('ano_inicio')
+    ano_fim        = request.GET.get('ano_fim')
+
+    if localidade_id:
+        try:
+            localidade_id = int(localidade_id)
+            queryset = queryset.filter(escola__localidade_id=localidade_id)
+        except ValueError:
+            pass
+
+    if escola_filtro:
+        queryset = queryset.filter(escola_id=escola_filtro)
+
+    if serie_filtro:
+        queryset = queryset.filter(serie_id=serie_filtro)
+
+    if ano_inicio and ano_fim:
+        queryset = queryset.filter(ano__range=[ano_inicio, ano_fim])
+    elif ano_inicio:
+        queryset = queryset.filter(ano__gte=ano_inicio)
+    elif ano_fim:
+        queryset = queryset.filter(ano__lte=ano_fim)
+
+    # ═══════════════════════════════════════════
+    #  AGRUPAMENTO: escola › série
+    # ═══════════════════════════════════════════
+    dados_raw = (
+        queryset
+        .values(
+            'ano',
+            'escola__id',
+            'escola__nome',
+            'escola__localidade__nome',
+            'serie__id',
+            'serie__nome',
+        )
+        .annotate(
+            total_previstos=Max('alunos_previstos'),
+            total_avaliados=Max('alunos_avaliados'),
+            taxa_participacao_max=Max('taxa_participacao'),
+            taxa_aprovacao_media=Avg('taxa_aprovacao'),
+            media_lp_agg=Avg('media_lp'),
+            media_mt_agg=Avg('media_mt'),
+            media_geral_agg=Avg('media_geral'),
+            ideb_estimado_agg=Avg('ideb_estimado'),
+        )
+        .order_by(
+            'ano',
+            'escola__nome',
+            'serie__nome',
+        )
+    )
+
+    # ═══════════════════════════════════════════
+    #  ESTRUTURA DE DADOS
+    #
+    #  escolas_dict
+    #   └── (ano, escola_id)
+    #        ├── meta da escola
+    #        └── _series
+    #             └── serie_id → dados da série
+    # ═══════════════════════════════════════════
+
+    escolas_dict = defaultdict(lambda: {
+        'ano': '',
+        'nome': '',
+        'localidade': '',
+        'total_avaliados': 0,
+        'total_previstos': 0,
+        'percentual_total': 0,
+        'ideb_medio': 0,
+        '_series': [],
+        '_ideb_values': [],
+    })
+
+    for d in dados_raw:
+        chave_escola = (d['ano'], d['escola__id'])
+
+        avaliados  = d['total_avaliados']  or 0
+        previstos  = d['total_previstos']  or 0
+        media_lp   = d['media_lp_agg']
+        media_mt   = d['media_mt_agg']
+        media_geral = d['media_geral_agg']
+        ideb       = d['ideb_estimado_agg']
+        taxa_aprov = d['taxa_aprovacao_media']
+        taxa_part  = d['taxa_participacao_max']
+
+        percentual_serie = round((avaliados / previstos * 100), 2) if previstos > 0 else 0
+
+        # ── Classificação IDEB ──────────────────
+        def classificar_ideb(valor):
+            if valor is None:
+                return '—'
+            if valor >= 6:
+                return 'Adequado'
+            if valor >= 5:
+                return 'Básico'
+            if valor >= 4:
+                return 'Insuficiente'
+            return 'Crítico'
+
+        escola = escolas_dict[chave_escola]
+        escola['ano']        = d['ano']
+        escola['nome']       = d['escola__nome']
+        escola['localidade'] = d['escola__localidade__nome']
+
+        # acumula totais da escola
+        escola['total_avaliados'] += avaliados
+        escola['total_previstos'] += previstos
+
+        if ideb is not None:
+            escola['_ideb_values'].append(float(ideb))
+
+        # adiciona a série
+        escola['_series'].append({
+            'nome':            d['serie__nome'],
+            'avaliados':       avaliados,
+            'previstos':       previstos,
+            'percentual':      percentual_serie,
+            'taxa_aprovacao':  round(float(taxa_aprov), 2)  if taxa_aprov  else None,
+            'taxa_participacao': round(float(taxa_part), 2) if taxa_part   else None,
+            'media_lp':        round(float(media_lp), 2)   if media_lp    else None,
+            'media_mt':        round(float(media_mt), 2)   if media_mt    else None,
+            'media_geral':     round(float(media_geral), 2) if media_geral else None,
+            'ideb_estimado':   round(float(ideb), 2)       if ideb        else None,
+            'ideb_classe':     classificar_ideb(float(ideb) if ideb else None),
+        })
+
+    # ═══════════════════════════════════════════
+    #  PÓS-PROCESSAMENTO: percentuais e listas
+    # ═══════════════════════════════════════════
+    dados_agrupados = []
+
+    for escola in sorted(
+        escolas_dict.values(),
+        key=lambda x: (x['ano'], x['nome'])
+    ):
+        # percentual total da escola
+        if escola['total_previstos'] > 0:
+            escola['percentual_total'] = round(
+                (escola['total_avaliados'] / escola['total_previstos']) * 100, 2
+            )
+
+        # IDEB médio da escola (média entre as séries)
+        if escola['_ideb_values']:
+            escola['ideb_medio'] = round(
+                sum(escola['_ideb_values']) / len(escola['_ideb_values']), 2
+            )
+
+        # ordena séries por nome
+        escola['series'] = sorted(
+            escola['_series'],
+            key=lambda s: s['nome']
+        )
+
+        # limpa chaves auxiliares
+        del escola['_series']
+        del escola['_ideb_values']
+
+        dados_agrupados.append(escola)
+
+    # ═══════════════════════════════════════════
+    #  DADOS AUXILIARES PARA FILTROS
+    # ═══════════════════════════════════════════
+    localidades = Localidade.objects.all().order_by('nome')
+
+    # CORREÇÃO APLICADA AQUI:
+    # Pega apenas as séries que têm ao menos 1 registro no model ResultPreliminarSaeb_2025
+    series_ids_com_dados = (
+        ResultPreliminarSaeb_2025.objects
+        .values_list('serie_id', flat=True)
+        .distinct()
+    )
+    series_disponiveis = (
+        Serie.objects
+        .filter(id__in=series_ids_com_dados)
+        .order_by('nome')
+    )
+
+    anos_disponiveis = (
+        ResultPreliminarSaeb_2025.objects
+        .values_list('ano', flat=True)
+        .distinct()
+        .order_by('ano')
+    )
+
+    # ═══════════════════════════════════════════
+    #  TOTAIS GERAIS
+    # ═══════════════════════════════════════════
+    grand_total_avaliados = sum(e['total_avaliados'] for e in dados_agrupados)
+    grand_total_previstos = sum(e['total_previstos'] for e in dados_agrupados)
+
+    total_series_count = sum(len(e['series']) for e in dados_agrupados)
+    total_escolas      = len(dados_agrupados)
+
+    percentual_geral = (
+        round((grand_total_avaliados / grand_total_previstos * 100), 2)
+        if grand_total_previstos > 0 else 0
+    )
+
+    ideb_geral = None
+    todos_idebs = [
+        serie['ideb_estimado']
+        for escola in dados_agrupados
+        for serie in escola['series']
+        if serie['ideb_estimado'] is not None
+    ]
+    if todos_idebs:
+        ideb_geral = round(sum(todos_idebs) / len(todos_idebs), 2)
+
+    # ═══════════════════════════════════════════
+    #  CONTEXT
+    # ═══════════════════════════════════════════
+    return render(
+        request,
+        'dashboard/relatorio_resultado_preliminar_saeb_2025.html',
+        {
+            'dados':                  dados_agrupados,
+            'localidades':            localidades,
+            'series_disponiveis':     series_disponiveis,
+            'anos_disponiveis':       anos_disponiveis,
+
+            # filtros ativos (para manter estado no form)
+            'filtro_localidade':      str(localidade_id) if localidade_id else '',
+            'filtro_escola':          escola_filtro or '',
+            'filtro_serie':           serie_filtro or '',
+            'filtro_ano_inicio':      ano_inicio or '',
+            'filtro_ano_fim':         ano_fim or '',
+
+            # totais
+            'grand_total_avaliados':  grand_total_avaliados,
+            'grand_total_previstos':  grand_total_previstos,
+            'percentual_geral':       percentual_geral,
+            'total_series_count':     total_series_count,
+            'total_escolas':          total_escolas,
+            'ideb_geral':             ideb_geral,
+        }
+    )

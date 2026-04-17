@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+{% load painel_tags %}
+
+{% block content %}
+
+<style>
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    .no-print,
+    .btn,
+    select {
+        display: none !important;
+    }
+
+    body {
+        background: #fff;
+        font-size: 8pt;
+    }
+
+    .card {
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+    }
+
+    table {
+        font-size: 8px;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    .escola-bloco {
+        page-break-inside: avoid;
+        margin-bottom: 12px;
+    }
+}
+
+/* ── Tela ───────────────────────────────────────────── */
+body { font-family: Arial; background: #f8f9fa; }
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.stat  { flex: 1; text-align: center; min-width: 100px; }
+.stat p { font-size: 20px; font-weight: bold; color: #e2953d; margin: 4px 0; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 6px 8px; border: 1px solid #dee2e6; }
+th { background: #e9ecef; }
+
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+
+/* Cabeçalho de cada escola */
+.escola-header {
+    background: #343a40;
+    color: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.escola-header h4  { margin: 0; font-size: 14px; color: #fff; }
+.escola-header span { font-size: 12px; opacity: .85; }
+
+/* Linhas de série */
+.row-serie td {
+    background: #fff;
+    font-size: 0.85em;
+}
+
+/* Total da escola */
+.row-total-escola td {
+    background: #d4edda;
+    font-weight: 700;
+}
+
+/* Total geral */
+tfoot tr td {
+    background: #faf9f9 !important;
+    color: #1a1919 !important;
+    font-weight: 700;
+}
+
+/* Badges IDEB */
+.badge-ideb {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+.badge-adequado    { background: #d4edda; color: #155724; }
+.badge-basico      { background: #cce5ff; color: #004085; }
+.badge-insuficiente{ background: #fff3cd; color: #856404; }
+.badge-critico     { background: #f8d7da; color: #721c24; }
+.badge-nd          { background: #e9ecef; color: #6c757d; }
+
+/* Badges participação */
+.badge-participacao {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+.badge-ok   { background: #d4edda; color: #155724; }
+.badge-warn { background: #fff3cd; color: #856404; }
+.badge-bad  { background: #f8d7da; color: #721c24; }
+
+.filter-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.filter-form label {
+    font-size: 12px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 3px;
+}
+.filter-form input,
+.filter-form select {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.btn { padding: 7px 14px; border-radius: 4px; text-decoration: none; cursor: pointer; border: none; }
+.btn-primary   { background: #007bff; color: #fff; }
+.btn-secondary { background: #6c757d; color: #fff; }
+
+.ideb-destaque {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: #343a40;
+}
+</style>
+
+<!-- ══════════════════════════════════════════════════
+     FILTROS
+════════════════════════════════════════════════════ -->
+<div class="card no-print">
+    <form method="get" class="filter-form">
+
+        <div>
+            <label>Localidade:</label>
+            <select name="localidade">
+                <option value="">Todas</option>
+                {% for loc in localidades %}
+                    <option value="{{ loc.id }}"
+                        {% if filtro_localidade == loc.id|stringformat:"s" %}selected{% endif %}>
+                        {{ loc.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Série:</label>
+            <select name="serie">
+                <option value="">Todas</option>
+                {% for s in series_disponiveis %}
+                    <option value="{{ s.id }}"
+                        {% if filtro_serie == s.id|stringformat:"s" %}selected{% endif %}>
+                        {{ s.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Ano Início:</label>
+            <input type="number" name="ano_inicio"
+                   value="{{ filtro_ano_inicio }}" style="width:90px;">
+        </div>
+
+        <div>
+            <label>Ano Fim:</label>
+            <input type="number" name="ano_fim"
+                   value="{{ filtro_ano_fim }}" style="width:90px;">
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="?" class="btn btn-secondary">Limpar</a>
+        </div>
+
+        <div style="margin-left:auto;">
+            <button type="button" class="btn btn-secondary"
+                    onclick="window.print()">🖨️ Imprimir</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     TOTALIZADORES GERAIS
+════════════════════════════════════════════════════ -->
+{% if dados %}
+<div class="card">
+    <div class="stats">
+        <div class="stat">
+            <small>Escolas</small>
+            <p>{{ total_escolas }}</p>
+        </div>
+        <div class="stat">
+            <small>Total de Séries</small>
+            <p>{{ total_series_count }}</p>
+        </div>
+        <div class="stat">
+            <small>Total Previstos</small>
+            <p>{{ grand_total_previstos }}</p>
+        </div>
+        <div class="stat">
+            <small>Total Avaliados</small>
+            <p>{{ grand_total_avaliados }}</p>
+        </div>
+        <div class="stat">
+            <small>% Participação Geral</small>
+            <p>{{ percentual_geral|floatformat:1 }}%</p>
+        </div>
+        <div class="stat">
+            <small>IDEB Médio Geral</small>
+            <p>
+                {% if ideb_geral %}
+                    {{ ideb_geral|floatformat:2 }}
+                {% else %}
+                    —
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     TÍTULO DO RELATÓRIO
+════════════════════════════════════════════════════ -->
+<div class="card" style="padding-bottom:5px;">
+    <h3 style="margin:0 0 4px 0;">
+        Resultado Preliminar SAEB 2025 — Por Escola e Série
+    </h3>
+    <small style="color:#6c757d;">
+        Médias de proficiência · Taxa de aprovação · IDEB estimado
+        {% if filtro_ano_inicio or filtro_ano_fim %}
+            &nbsp;|&nbsp; Período:
+            {{ filtro_ano_inicio|default:"início" }} –
+            {{ filtro_ano_fim|default:"atual" }}
+        {% endif %}
+    </small>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     BLOCO POR ESCOLA
+════════════════════════════════════════════════════ -->
+{% for escola in dados %}
+<div class="escola-bloco card" style="padding:0; overflow:hidden;">
+
+    <!-- Cabeçalho da escola -->
+    <div class="escola-header">
+        <h4>{{ escola.nome }}</h4>
+        <span>
+            {{ escola.localidade }}
+            &nbsp;|&nbsp; Ano: {{ escola.ano }}
+            &nbsp;|&nbsp; Participação:
+            <strong>{{ escola.percentual_total|floatformat:1 }}%</strong>
+            ({{ escola.total_avaliados }} / {{ escola.total_previstos }})
+            {% if escola.ideb_medio %}
+                &nbsp;|&nbsp; IDEB Médio:
+                <strong>{{ escola.ideb_medio|floatformat:2 }}</strong>
+            {% endif %}
+        </span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:16%;">Série</th>
+                <th class="text-center" style="width:9%;">Previstos</th>
+                <th class="text-center" style="width:9%;">Avaliados</th>
+                <th class="text-center" style="width:9%;">% Part.</th>
+                <th class="text-center" style="width:9%;">% Aprovação</th>
+                <th class="text-center" style="width:10%;">Média LP</th>
+                <th class="text-center" style="width:10%;">Média MT</th>
+                <th class="text-center" style="width:10%;">Média Geral</th>
+                <th class="text-center" style="width:10%;">IDEB Est.</th>
+                <th class="text-center" style="width:8%;">Situação</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for serie in escola.series %}
+        <tr class="row-serie">
+
+            <!-- Série -->
+            <td style="font-weight:600; color:#084298;">
+                {{ serie.nome }}
+            </td>
+
+            <!-- Previstos / Avaliados -->
+            <td class="text-center">{{ serie.previstos }}</td>
+            <td class="text-center">{{ serie.avaliados }}</td>
+
+            <!-- % Participação com badge -->
+            <td class="text-center">
+                {% with p=serie.percentual|floatformat:1 %}
+                    {% if serie.percentual >= 80 %}
+                        <span class="badge-participacao badge-ok">{{ p }}%</span>
+                    {% elif serie.percentual >= 50 %}
+                        <span class="badge-participacao badge-warn">{{ p }}%</span>
+                    {% else %}
+                        <span class="badge-participacao badge-bad">{{ p }}%</span>
+                    {% endif %}
+                {% endwith %}
+            </td>
+
+            <!-- % Aprovação -->
+            <td class="text-center">
+                {% if serie.taxa_aprovacao is not None %}
+                    {{ serie.taxa_aprovacao|floatformat:1 }}%
+                {% else %}
+                    <span style="color:#aaa;">—</span>
+                {% endif %}
+            </td>
+
+            <!-- Média LP -->
+            <td class="text-center">
+                {% if serie.media_lp is not None %}
+                    {{ serie.media_lp|floatformat:2 }}
+                {% else %}
+                    <span style="color:#aaa;">—</span>
+                {% endif %}
+            </td>
+
+            <!-- Média MT -->
+            <td class="text-center">
+                {% if serie.media_mt is not None %}
+                    {{ serie.media_mt|floatformat:2 }}
+                {% else %}
+                    <span style="color:#aaa;">—</span>
+                {% endif %}
+            </td>
+
+            <!-- Média Geral (padronizada) -->
+            <td class="text-center">
+                {% if serie.media_geral is not None %}
+                    {{ serie.media_geral|floatformat:2 }}
+                {% else %}
+                    <span style="color:#aaa;">—</span>
+                {% endif %}
+            </td>
+
+            <!-- IDEB Estimado -->
+            <td class="text-center">
+                {% if serie.ideb_estimado is not None %}
+                    <span class="ideb-destaque">{{ serie.ideb_estimado|floatformat:2 }}</span>
+                {% else %}
+                    <span style="color:#aaa;">—</span>
+                {% endif %}
+            </td>
+
+            <!-- Badge de situação IDEB -->
+            <td class="text-center">
+                {% if serie.ideb_estimado is not None %}
+                    {% if serie.ideb_estimado >= 6 %}
+                        <span class="badge-ideb badge-adequado">Adequado</span>
+                    {% elif serie.ideb_estimado >= 5 %}
+                        <span class="badge-ideb badge-basico">Básico</span>
+                    {% elif serie.ideb_estimado >= 4 %}
+                        <span class="badge-ideb badge-insuficiente">Insuficiente</span>
+                    {% else %}
+                        <span class="badge-ideb badge-critico">Crítico</span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge-ideb badge-nd">N/D</span>
+                {% endif %}
+            </td>
+
+        </tr>
+        {% endfor %}
+        </tbody>
+
+        <!-- Total da Escola -->
+        <tfoot>
+            <tr class="row-total-escola">
+                <td><strong>Total Escola</strong></td>
+                <td class="text-center">
+                    <strong>{{ escola.total_previstos }}</strong>
+                </td>
+                <td class="text-center">
+                    <strong>{{ escola.total_avaliados }}</strong>
+                </td>
+                <td class="text-center">
+                    <strong>{{ escola.percentual_total|floatformat:1 }}%</strong>
+                </td>
+                <!-- aprovação / médias / IDEB não somam — mostrar IDEB médio da escola -->
+                <td class="text-center" colspan="5" style="color:#6c757d; font-weight:400;">
+                    {% if escola.ideb_medio %}
+                        IDEB médio da escola:
+                        <strong class="ideb-destaque">
+                            {{ escola.ideb_medio|floatformat:2 }}
+                        </strong>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if escola.ideb_medio %}
+                        {% if escola.ideb_medio >= 6 %}
+                            <span class="badge-ideb badge-adequado">Adequado</span>
+                        {% elif escola.ideb_medio >= 5 %}
+                            <span class="badge-ideb badge-basico">Básico</span>
+                        {% elif escola.ideb_medio >= 4 %}
+                            <span class="badge-ideb badge-insuficiente">Insuficiente</span>
+                        {% else %}
+                            <span class="badge-ideb badge-critico">Crítico</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge-ideb badge-nd">N/D</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+</div><!-- /escola-bloco -->
+{% endfor %}
+
+<!-- ══════════════════════════════════════════════════
+     TOTAL GERAL (resumo final)
+════════════════════════════════════════════════════ -->
+<div class="card">
+    <table>
+        <tfoot>
+            <tr>
+                <td><strong>TOTAL GERAL</strong></td>
+                <td class="text-center">
+                    <strong>{{ grand_total_previstos }}</strong>
+                </td>
+                <td class="text-center">
+                    <strong>{{ grand_total_avaliados }}</strong>
+                </td>
+                <td class="text-center">
+                    <strong>{{ percentual_geral|floatformat:1 }}%</strong>
+                </td>
+                <td class="text-center" colspan="5" style="font-weight:400; color:#6c757d;">
+                    {% if ideb_geral %}
+                        IDEB médio geral:
+                        <strong class="ideb-destaque">{{ ideb_geral|floatformat:2 }}</strong>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if ideb_geral %}
+                        {% if ideb_geral >= 6 %}
+                            <span class="badge-ideb badge-adequado">Adequado</span>
+                        {% elif ideb_geral >= 5 %}
+                            <span class="badge-ideb badge-basico">Básico</span>
+                        {% elif ideb_geral >= 4 %}
+                            <span class="badge-ideb badge-insuficiente">Insuficiente</span>
+                        {% else %}
+                            <span class="badge-ideb badge-critico">Crítico</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge-ideb badge-nd">N/D</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+{% else %}
+<div class="card">
+    <p style="color:#6c757d;">
+        Nenhum dado encontrado para os filtros selecionados.
+    </p>
+</div>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════
+     LEGENDA
+════════════════════════════════════════════════════ -->
+<div class="card" style="background:#e9ecef;">
+    <p style="color:#6c757d; margin:0; font-size:12px;">
+        <strong>Participação:</strong>
+        <span class="badge-participacao badge-ok">≥ 80% adequado</span>
+        <span class="badge-participacao badge-warn">50–79% atenção</span>
+        <span class="badge-participacao badge-bad">< 50% crítico</span>
+        &nbsp;&nbsp;
+        <strong>IDEB:</strong>
+        <span class="badge-ideb badge-adequado">≥ 6,0 Adequado</span>
+        <span class="badge-ideb badge-basico">5,0–5,9 Básico</span>
+        <span class="badge-ideb badge-insuficiente">4,0–4,9 Insuficiente</span>
+        <span class="badge-ideb badge-critico">< 4,0 Crítico</span>
+        <br>
+        * Médias LP e MT = proficiência bruta SAEB.
+        Média Geral = nota padronizada (escala 0–10).
+        IDEB Estimado = Média Geral × Indicador de Rendimento.
+    </p>
+</div>
+
+{% endblock %}
