@@ -7,18 +7,32 @@ class Escola(models.Model):
     endereco = models.CharField('Endereço', max_length=255)
     bairrodistrito = models.CharField('Bairro/Distrito', max_length=100)
     gestor = models.CharField('Gestor (Nome e Telefone)', max_length=255)
-    
+
     localidade = models.ForeignKey(
         "Localidade",
         on_delete=models.CASCADE,
         verbose_name='Localidade'
     )
-    
+
+    latitude = models.DecimalField(
+        'Latitude', max_digits=9, decimal_places=6,
+        null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        'Longitude', max_digits=9, decimal_places=6,
+        null=True, blank=True
+    )
+
     telefone_extraido = models.CharField('Telefone Extraído', max_length=20, blank=True, null=True)
     dados = models.JSONField('Dados Adicionais', null=True, blank=True)
-    
+
     def __str__(self):
         return f"{self.nome} (ID: {self.id})"
+    
+    def google_maps_url(self):
+        if self.latitude and self.longitude:
+            return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+        return None
 
 
 class Localidade(models.Model):
@@ -1000,3 +1014,37 @@ class ResultPreliminarSaeb_2025(models.Model):
         self.ideb_estimado = self.calcular_ideb()
 
         super().save(*args, **kwargs)
+
+
+# tabela Alfabetômetro
+
+
+
+class Alfabetometro(models.Model):
+    escola = models.ForeignKey(
+        Escola,
+        on_delete=models.CASCADE,
+        related_name='alfabetometro_data', # Nome para acessar do lado da Escola
+        verbose_name='Escola'
+    )
+    ano_referencia = models.IntegerField('Ano de Referência')
+    periodo = models.CharField('Período', max_length=50, blank=True, null=True,
+                              help_text='Ex: 1º Semestre, 2023/2024, etc.')
+
+    qtd_alunos_ano = models.IntegerField('Total de Alunos no Ano', default=0)
+    qtd_pre_silabico = models.IntegerField('Alunos Pré-Silábicos', default=0)
+    qtd_silabico = models.IntegerField('Alunos Silábicos', default=0)
+    qtd_silabico_alfabetico = models.IntegerField('Alunos Silábico-Alfabéticos', default=0)
+    qtd_alfabetico = models.IntegerField('Alunos Alfabéticos', default=0)
+
+    data_registro = models.DateTimeField('Data de Registro', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Dados do Alfabetômetro'
+        verbose_name_plural = 'Dados do Alfabetômetro'
+        # Garante que não haja dois registros do alfabetômetro para a mesma escola no mesmo ano/período
+        unique_together = ('escola', 'ano_referencia', 'periodo')
+
+    def __str__(self):
+        periodo_str = f" ({self.periodo})" if self.periodo else ""
+        return f"Alfabetômetro de {self.escola.nome} - {self.ano_referencia}{periodo_str}"

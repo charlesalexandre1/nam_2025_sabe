@@ -50,6 +50,8 @@ urlpatterns = [
     path('dashboard/comparativo-geral/', views.painel_comparativo_geral, name='comparativo_geral'),
     path('dashboard/comparativo_habilidade_escolas/', views.ComparativoLocalidadeView.as_view(), name='comparativo_habilidade_escolas'),
     path('dashboard/relatorio-resultado-preliminar-saeb-2025/', views.relatorio_resultado_preliminar_saeb_2025, name='relatorio_resultado_preliminar_saeb_2025'),
+    path('dashboard/mapa-escolas/', views.mapa_escolas, name='mapa_escolas'),
+    path('dados-escolas/', views.dados_escolas_json, name='dados_escolas_json'),
 ]
     
 

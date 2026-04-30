@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interativo de Escolas</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #mapa {
+            height: 80vh; /* Altura do mapa, 80% da altura da viewport */
+            width: 100%;
+        }
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .info-box strong {
+            color: #0056b3;
+        }
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+            margin: 5px 0 0 0;
+        }
+        .info-box li {
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mapa Interativo de Escolas</h1>
+
+    <div id="mapa"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Inicializa o mapa
+        // Define uma localização central padrão (ex: centro do Brasil ou uma coordenada que você conheça)
+        var map = L.map('mapa').setView([-14.235, -53.132], 5); // Latitude, Longitude, Zoom
+
+        // Adiciona a camada de tiles do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Função para carregar os dados das escolas
+        function carregarDadosEscolas() {
+            fetch("{% url 'dados_escolas_json' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        // Ajusta o centro do mapa para a primeira escola, se houver
+                        map.setView([data[0].latitude, data[0].longitude], 10);
+                    }
+
+                    data.forEach(escola => {
+                        if (escola.latitude && escola.longitude) {
+                            var popupContent = `
+                                <div class="info-box">
+                                    <strong>${escola.nome}</strong><br>
+                                    Endereço: ${escola.endereco}<br>
+                                    Localidade: ${escola.localidade}<br>
+                                    Gestor: ${escola.gestor}<br>
+                            `;
+
+                            if (escola.alfabetometro) {
+                                popupContent += `
+                                    <hr>
+                                    <strong>Dados do Alfabetômetro (${escola.alfabetometro.ano_referencia}${escola.alfabetometro.periodo ? ' - ' + escola.alfabetometro.periodo : ''}):</strong>
+                                    <ul>
+                                        <li>Total de Alunos: ${escola.alfabetometro.qtd_alunos_ano}</li>
+                                        <li>Pré-Silábicos: ${escola.alfabetometro.qtd_pre_silabico}</li>
+                                        <li>Silábicos: ${escola.alfabetometro.qtd_silabico}</li>
+                                        <li>Silábico-Alfabéticos: ${escola.alfabetometro.qtd_silabico_alfabetico}</li>
+                                        <li>Alfabéticos: ${escola.alfabetometro.qtd_alfabetico}</li>
+                                    </ul>
+                                `;
+                            } else {
+                                popupContent += `<hr><em>Dados do Alfabetômetro não disponíveis.</em>`;
+                            }
+                            popupContent += `</div>`;
+
+                            L.marker([escola.latitude, escola.longitude])
+                                .addTo(map)
+                                .bindPopup(popupContent);
+                        }
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar dados das escolas:', error));
+        }
+
+        // Chama a função para carregar os dados quando a página for carregada
+        carregarDadosEscolas();
+    </script>
+</body>
+</html>

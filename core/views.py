@@ -2479,3 +2479,58 @@ def relatorio_resultado_preliminar_saeb_2025(request):
             'ideb_por_serie':         ideb_por_serie,
         }
     )
+
+# mapa alfabetometro
+
+# escolas/views.py
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.core.serializers import serialize
+from .models import Escola, Alfabetometro
+import json
+
+def mapa_escolas(request):
+    """
+    Renderiza a página HTML com o mapa das escolas.
+    """
+    return render(request, 'dashboard/mapa_escolas.html')
+
+def dados_escolas_json(request):
+    """
+    Retorna os dados das escolas e seus alfabetômetros mais recentes em formato JSON.
+    """
+    escolas_com_dados = []
+    escolas = Escola.objects.all().prefetch_related('alfabetometro_data')
+
+    for escola in escolas:
+        # Tenta pegar o registro mais recente do Alfabetometro para esta escola
+        # Você pode ajustar a lógica aqui para pegar o dado de um ano/período específico
+        alfabetometro_recente = escola.alfabetometro_data.order_by('-ano_referencia', '-data_registro').first()
+
+        escola_data = {
+            'id': escola.id,
+            'nome': escola.nome,
+            'endereco': escola.endereco,
+            'latitude': float(escola.latitude) if escola.latitude else None,
+            'longitude': float(escola.longitude) if escola.longitude else None,
+            'gestor': escola.gestor,
+            'localidade': escola.localidade.nome if escola.localidade else None,
+            'alfabetometro': None
+        }
+
+        if alfabetometro_recente:
+            escola_data['alfabetometro'] = {
+                'ano_referencia': alfabetometro_recente.ano_referencia,
+                'periodo': alfabetometro_recente.periodo,
+                'qtd_alunos_ano': alfabetometro_recente.qtd_alunos_ano,
+                'qtd_pre_silabico': alfabetometro_recente.qtd_pre_silabico,
+                'qtd_silabico': alfabetometro_recente.qtd_silabico,
+                'qtd_silabico_alfabetico': alfabetometro_recente.qtd_silabico_alfabetico,
+                'qtd_alfabetico': alfabetometro_recente.qtd_alfabetico,
+            }
+
+        # Apenas adiciona escolas que possuem latitude e longitude válidas
+        if escola_data['latitude'] is not None and escola_data['longitude'] is not None:
+            escolas_com_dados.append(escola_data)
+
+    return JsonResponse(escolas_com_dados, safe=False)
