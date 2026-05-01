@@ -2534,3 +2534,91 @@ def dados_escolas_json(request):
             escolas_com_dados.append(escola_data)
 
     return JsonResponse(escolas_com_dados, safe=False)
+
+
+# relatorio alfabetometro
+
+from django.shortcuts import render
+from .models import Escola, Alfabetometro
+from django.db.models import Sum
+
+
+def relatorio_alfabetometro(request):
+
+    registros = (
+        Alfabetometro.objects
+        .select_related('escola')
+        .all()
+    )
+
+    escolas_dict = {}
+
+    for r in registros:
+        escola_id = r.escola.id
+
+        if escola_id not in escolas_dict:
+            escolas_dict[escola_id] = {
+                "nome": r.escola.nome,
+                "localidade": r.escola.localidade,
+                "series": [],
+                "total_alunos": 0,
+                "total_alfabetico": 0,
+                "total_pre": 0,
+                "total_silabico": 0,
+                "total_silabico_alfabetico": 0,
+            }
+
+        escola = escolas_dict[escola_id]
+
+        total = r.qtd_alunos_ano
+        alfabetico = r.qtd_alfabetico
+
+        percentual = (alfabetico / total * 100) if total > 0 else 0
+
+        escola["series"].append({
+            "ano": r.ano_referencia,
+            "periodo": r.periodo,
+            "total": total,
+            "alfabetico": alfabetico,
+            "pre": r.qtd_pre_silabico,
+            "silabico": r.qtd_silabico,
+            "silabico_alfabetico": r.qtd_silabico_alfabetico,
+            "percentual": percentual,
+        })
+
+        escola["total_alunos"] += total
+        escola["total_alfabetico"] += alfabetico
+        escola["total_pre"] += r.qtd_pre_silabico
+        escola["total_silabico"] += r.qtd_silabico
+        escola["total_silabico_alfabetico"] += r.qtd_silabico_alfabetico
+
+    # cálculo geral
+    dados = []
+
+    total_geral = 0
+    total_alfabetico_geral = 0
+
+    for e in escolas_dict.values():
+        total = e["total_alunos"]
+        alfa = e["total_alfabetico"]
+
+        percentual = (alfa / total * 100) if total > 0 else 0
+
+        e["percentual_total"] = percentual
+
+        total_geral += total
+        total_alfabetico_geral += alfa
+
+        dados.append(e)
+
+    percentual_geral = (total_alfabetico_geral / total_geral * 100) if total_geral > 0 else 0
+
+    context = {
+        "dados": dados,
+        "total_escolas": len(dados),
+        "total_geral": total_geral,
+        "total_alfabetico_geral": total_alfabetico_geral,
+        "percentual_geral": percentual_geral,
+    }
+
+    return render(request, "dashboard/relatorio_alfabetometro.html", context)

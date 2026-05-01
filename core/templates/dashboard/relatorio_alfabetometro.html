@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="stats">
+        <div class="stat">
+            <small>Escolas</small>
+            <p>{{ total_escolas }}</p>
+        </div>
+        <div class="stat">
+            <small>Total de Alunos</small>
+            <p>{{ total_geral }}</p>
+        </div>
+        <div class="stat">
+            <small>Alfabetizados</small>
+            <p>{{ total_alfabetico_geral }}</p>
+        </div>
+        <div class="stat">
+            <small>% Geral</small>
+            <p>{{ percentual_geral|floatformat:1 }}%</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% for escola in dados %}
+
+<div class="card">
+
+    <div class="escola-header">
+        <h4>{{ escola.nome }}</h4>
+        <span>
+            {{ escola.localidade }} |
+            📊 {{ escola.percentual_total|floatformat:1 }}%
+        </span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Ano</th>
+                <th>Total</th>
+                <th>Pré</th>
+                <th>Silábico</th>
+                <th>Silábico-Alfabético</th>
+                <th>Alfabético</th>
+                <th>%</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for s in escola.series %}
+        <tr>
+            <td>{{ s.ano }} {{ s.periodo }}</td>
+            <td>{{ s.total }}</td>
+            <td>{{ s.pre }}</td>
+            <td>{{ s.silabico }}</td>
+            <td>{{ s.silabico_alfabetico }}</td>
+            <td>{{ s.alfabetico }}</td>
+            <td>{{ s.percentual|floatformat:1 }}%</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+
+        <tfoot>
+            <tr style="background:#d4edda;">
+                <td><strong>Total</strong></td>
+                <td><strong>{{ escola.total_alunos }}</strong></td>
+                <td><strong>{{ escola.total_pre }}</strong></td>
+                <td><strong>{{ escola.total_silabico }}</strong></td>
+                <td><strong>{{ escola.total_silabico_alfabetico }}</strong></td>
+                <td><strong>{{ escola.total_alfabetico }}</strong></td>
+                <td><strong>{{ escola.percentual_total|floatformat:1 }}%</strong></td>
+            </tr>
+        </tfoot>
+
+    </table>
+
+</div>
+
+{% endfor %}

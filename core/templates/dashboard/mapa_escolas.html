@@ -3,107 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Interativo de Escolas</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>Mapa de Escolas com Heatmap</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
     <style>
+        :root {
+            --primary: #0056b3;
+            --bg: #f4f6f9;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 15px;
+        }
+
         #mapa {
-            height: 80vh; /* Altura do mapa, 80% da altura da viewport */
+            height: 80vh;
             width: 100%;
         }
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
+
+        .container {
+            padding: 15px;
         }
-        h1 {
-            color: #333;
+
+        .loading {
             text-align: center;
-            margin-bottom: 20px;
+            margin-top: 10px;
         }
-        .info-box {
-            font-size: 0.9em;
-            line-height: 1.4;
+
+        .legenda {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 0.85em;
+            box-shadow: 0 0 6px rgba(0,0,0,0.2);
         }
-        .info-box strong {
-            color: #0056b3;
+
+        .controle {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
         }
-        .info-box ul {
-            list-style: none;
-            padding: 0;
-            margin: 5px 0 0 0;
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
         }
-        .info-box li {
-            margin-bottom: 3px;
+
+        button:hover {
+            background: #003f88;
         }
     </style>
 </head>
+
 <body>
-    <h1>Mapa Interativo de Escolas</h1>
 
+<header>
+    <h2>📍 Mapa de Escolas com Heatmap de Alfabetização</h2>
+</header>
+
+<div class="container">
     <div id="mapa"></div>
+    <div class="loading" id="loading">Carregando dados...</div>
+</div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        // Inicializa o mapa
-        // Define uma localização central padrão (ex: centro do Brasil ou uma coordenada que você conheça)
-        var map = L.map('mapa').setView([-14.235, -53.132], 5); // Latitude, Longitude, Zoom
+<!-- Botão -->
+<div class="controle">
+    <button onclick="alternarHeatmap()">🔥 Alternar Heatmap</button>
+</div>
 
-        // Adiciona a camada de tiles do OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+<!-- Legenda -->
+<div class="legenda">
+    <strong>Legenda:</strong><br>
+    🟢 Com alfabetizados<br>
+    🔴 Sem alfabetizados<br>
+    ⚪ Sem dados<br>
+    <hr>
+    🔥 Heatmap = intensidade de alfabetização
+</div>
 
-        // Função para carregar os dados das escolas
-        function carregarDadosEscolas() {
-            fetch("{% url 'dados_escolas_json' %}")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        // Ajusta o centro do mapa para a primeira escola, se houver
-                        map.setView([data[0].latitude, data[0].longitude], 10);
-                    }
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
-                    data.forEach(escola => {
-                        if (escola.latitude && escola.longitude) {
-                            var popupContent = `
-                                <div class="info-box">
-                                    <strong>${escola.nome}</strong><br>
-                                    Endereço: ${escola.endereco}<br>
-                                    Localidade: ${escola.localidade}<br>
-                                    Gestor: ${escola.gestor}<br>
-                            `;
+<script>
+    const map = L.map('mapa').setView([-14.235, -53.132], 5);
+    const loading = document.getElementById("loading");
 
-                            if (escola.alfabetometro) {
-                                popupContent += `
-                                    <hr>
-                                    <strong>Dados do Alfabetômetro (${escola.alfabetometro.ano_referencia}${escola.alfabetometro.periodo ? ' - ' + escola.alfabetometro.periodo : ''}):</strong>
-                                    <ul>
-                                        <li>Total de Alunos: ${escola.alfabetometro.qtd_alunos_ano}</li>
-                                        <li>Pré-Silábicos: ${escola.alfabetometro.qtd_pre_silabico}</li>
-                                        <li>Silábicos: ${escola.alfabetometro.qtd_silabico}</li>
-                                        <li>Silábico-Alfabéticos: ${escola.alfabetometro.qtd_silabico_alfabetico}</li>
-                                        <li>Alfabéticos: ${escola.alfabetometro.qtd_alfabetico}</li>
-                                    </ul>
-                                `;
-                            } else {
-                                popupContent += `<hr><em>Dados do Alfabetômetro não disponíveis.</em>`;
-                            }
-                            popupContent += `</div>`;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-                            L.marker([escola.latitude, escola.longitude])
-                                .addTo(map)
-                                .bindPopup(popupContent);
-                        }
-                    });
-                })
-                .catch(error => console.error('Erro ao carregar dados das escolas:', error));
+    // Ícones
+    const iconeVerde = new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        iconSize: [32, 32]
+    });
+
+    const iconeVermelho = new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        iconSize: [32, 32]
+    });
+
+    const iconeCinza = new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/grey-dot.png',
+        iconSize: [32, 32]
+    });
+
+    function definirIcone(escola) {
+        if (!escola.alfabetometro) return iconeCinza;
+
+        const alfabetico = escola.alfabetometro.qtd_alfabetico || 0;
+
+        return alfabetico > 0 ? iconeVerde : iconeVermelho;
+    }
+
+    function criarPopup(escola) {
+        let percentual = 0;
+
+        if (escola.alfabetometro) {
+            const total = escola.alfabetometro.qtd_alunos_ano || 0;
+            const alfabetico = escola.alfabetometro.qtd_alfabetico || 0;
+            percentual = total > 0 ? ((alfabetico / total) * 100).toFixed(1) : 0;
         }
 
-        // Chama a função para carregar os dados quando a página for carregada
-        carregarDadosEscolas();
-    </script>
+        return `
+            <strong>${escola.nome}</strong><br>
+            📍 ${escola.endereco}<br>
+            🏙️ ${escola.localidade}<br>
+            👨‍🏫 ${escola.gestor || 'Não informado'}
+            <hr>
+            ${
+                escola.alfabetometro
+                
+                ? `📊 ${percentual}% alfabetizados`
+                : `<em>Sem dados</em>`
+                
+                
+            }
+        `;
+    }
+
+    let heatData = [];
+    let heatLayer;
+
+    function carregarDadosEscolas() {
+        fetch("{% url 'dados_escolas_json' %}")
+            .then(res => res.json())
+            .then(data => {
+                loading.style.display = "none";
+
+                const bounds = [];
+
+                data.forEach(escola => {
+                    if (escola.latitude && escola.longitude) {
+
+                        const latlng = [escola.latitude, escola.longitude];
+                        bounds.push(latlng);
+
+                        // marcador
+                        L.marker(latlng, {
+                            icon: definirIcone(escola)
+                        })
+                        .addTo(map)
+                        .bindPopup(criarPopup(escola));
+
+                        // heatmap
+                        const total = escola.alfabetometro?.qtd_alunos_ano || 0;
+                        const alfabetico = escola.alfabetometro?.qtd_alfabetico || 0;
+                        const intensidade = total > 0 ? (alfabetico / total) : 0;
+
+                        heatData.push([escola.latitude, escola.longitude, intensidade]);
+                    }
+                });
+
+                if (bounds.length) {
+                    map.fitBounds(bounds);
+                }
+
+                // cria heatmap
+                heatLayer = L.heatLayer(heatData, {
+                    radius: 25,
+                    blur: 15,
+                    maxZoom: 17
+                });
+
+            })
+            .catch(err => {
+                loading.innerText = "Erro ao carregar dados.";
+                console.error(err);
+            });
+    }
+
+    function alternarHeatmap() {
+        if (!heatLayer) return;
+
+        if (map.hasLayer(heatLayer)) {
+            map.removeLayer(heatLayer);
+        } else {
+            map.addLayer(heatLayer);
+        }
+    }
+
+    carregarDadosEscolas();
+</script>
+
 </body>
 </html>

@@ -52,6 +52,7 @@ urlpatterns = [
     path('dashboard/relatorio-resultado-preliminar-saeb-2025/', views.relatorio_resultado_preliminar_saeb_2025, name='relatorio_resultado_preliminar_saeb_2025'),
     path('dashboard/mapa-escolas/', views.mapa_escolas, name='mapa_escolas'),
     path('dados-escolas/', views.dados_escolas_json, name='dados_escolas_json'),
+    path('dashboard/relatorio-alfabetometro/', views.relatorio_alfabetometro, name='relatorio_alfabetometro'),
 ]
     
 
