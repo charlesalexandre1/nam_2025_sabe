@@ -218,3 +218,54 @@ class ResultPreliminarSaeb2025Admin(admin.ModelAdmin):
 
     # 🔹 Paginação
     list_per_page = 25
+
+from django.contrib import admin
+from .models import Escola, Alfabetometro
+
+
+
+
+@admin.register(Alfabetometro)
+class AlfabetometroAdmin(admin.ModelAdmin):
+    list_display = (
+        'escola',
+        'ano_referencia',
+        'periodo',
+        'qtd_alunos_ano',
+        'qtd_alfabetico',
+        'qtd_pre_silabico',
+        'data_registro'
+    )
+
+    list_filter = (
+        'ano_referencia',
+        'periodo',
+        'escola',
+    )
+
+    search_fields = (
+        'escola__nome',
+    )
+
+    ordering = (
+        '-ano_referencia',
+        'escola',
+    )
+
+    list_per_page = 20
+
+    # 🔥 extra: deixa mais organizado
+    fieldsets = (
+        ('Informações Gerais', {
+            'fields': ('escola', 'ano_referencia', 'periodo')
+        }),
+        ('Dados de Alfabetização', {
+            'fields': (
+                'qtd_alunos_ano',
+                'qtd_pre_silabico',
+                'qtd_silabico',
+                'qtd_silabico_alfabetico',
+                'qtd_alfabetico'
+            )
+        }),
+    )

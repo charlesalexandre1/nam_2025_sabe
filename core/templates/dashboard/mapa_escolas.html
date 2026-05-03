@@ -1,229 +1,750 @@
+{% extends "base.html" %}
+{% load painel_tags %}
+
+{% block content %}
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Escolas com Heatmap</title>
+    <title>Mapa da Alfabetização - Acompanhamento por Escola</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
-        :root {
-            --primary: #0056b3;
-            --bg: #f4f6f9;
+        /* Reset e estilos base */
+        .mapa-container {
+            padding: 20px;
+            background: #f4f6f9;
+            min-height: calc(100vh - 60px);
         }
 
-        body {
+        /* Header do conteúdo */
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .content-header h2 {
+            font-size: 22px;
+            color: #1e2a3a;
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: var(--bg);
         }
 
-        header {
-            background: var(--primary);
-            color: white;
-            text-align: center;
-            padding: 15px;
+        .content-header p {
+            color: #6c7a89;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-map {
+            padding: 8px 16px;
+            border: none;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-map:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Layout Mapa + Sidebar */
+        .map-layout {
+            display: flex;
+            gap: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .map-container {
+            flex: 3;
+            height: 550px;
+            position: relative;
         }
 
         #mapa {
-            height: 80vh;
+            height: 100%;
             width: 100%;
         }
 
-        .container {
+        /* Sidebar direita */
+        .info-sidebar {
+            width: 350px;
             padding: 15px;
-        }
-
-        .loading {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .legenda {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
             background: white;
+            overflow-y: auto;
+            max-height: 550px;
+            border-left: 1px solid #e0e0e0;
+        }
+
+        /* Busca */
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box h4 {
+            font-size: 14px;
+            color: #1e2a3a;
+            margin-bottom: 10px;
+        }
+
+        #search-escola {
+            width: 100%;
             padding: 10px;
+            border: 1px solid #ddd;
             border-radius: 8px;
-            z-index: 1000;
-            font-size: 0.85em;
-            box-shadow: 0 0 6px rgba(0,0,0,0.2);
+            font-size: 13px;
         }
 
-        .controle {
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            z-index: 1000;
+        #search-escola:focus {
+            outline: none;
+            border-color: #ff9800;
         }
 
-        button {
-            padding: 8px 12px;
-            border: none;
-            background: var(--primary);
-            color: white;
+        .search-results {
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 8px;
+            background: #f8f9fa;
             border-radius: 6px;
+            margin-bottom: 5px;
             cursor: pointer;
+            font-size: 12px;
         }
 
-        button:hover {
-            background: #003f88;
+        .search-result-item:hover {
+            background: #e9ecef;
+        }
+
+        /* Escola Selecionada */
+        .selected-school {
+            background: #f0f7ff;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .selected-school h4 {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .selected-school h3 {
+            font-size: 15px;
+            color: #1e2a3a;
+            margin-bottom: 5px;
+        }
+
+        .selected-school .school-meta {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 6px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        /* Camadas de Classificação */
+        .layers-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .layers-section h4 {
+            font-size: 14px;
+            color: #1e2a3a;
+            margin-bottom: 12px;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .layer-item:hover {
+            background: #f8f9fa;
+        }
+
+        .layer-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layer-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+        }
+
+        .layer-name {
+            font-size: 13px;
+        }
+
+        .layer-name small {
+            font-size: 10px;
+            color: #999;
+            font-weight: normal;
+        }
+
+        .layer-count {
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Lista de Escolas */
+        .schools-list-section h4 {
+            font-size: 14px;
+            color: #1e2a3a;
+            margin-bottom: 12px;
+        }
+
+        .school-list-group {
+            margin-bottom: 15px;
+        }
+
+        .school-list-group-title {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .school-list-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .school-list-item:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+
+        .school-list-item.excelente { border-left-color: #27ae60; }
+        .school-list-item.bom { border-left-color: #5cb85c; }
+        .school-list-item.atencao { border-left-color: #f0ad4e; }
+        .school-list-item.critico { border-left-color: #d9534f; }
+
+        .school-list-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1e2a3a;
+        }
+
+        .school-list-percent {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .school-list-location {
+            font-size: 10px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* Legenda do Mapa */
+        .map-legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* Scrollbar */
+        .info-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .info-sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .info-sidebar::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 5px;
+        }
+
+        /* Loading */
+        .loading-placeholder {
+            text-align: center;
+            padding: 20px;
+            color: #999;
         }
     </style>
 </head>
 
 <body>
 
-<header>
-    <h2>📍 Mapa de Escolas com Heatmap de Alfabetização</h2>
-</header>
+<div class="mapa-container">
+    <!-- Cabeçalho -->
+    <div class="content-header">
+        <div>
+            <h2>Mapa da Alfabetização - Abril/2026</h2>
+            <p>Acompanhamento do percentual de alunos alfabetizados por escola</p>
+        </div>
+        <div class="header-buttons">
+            <button class="btn-map" onclick="resetMapView()">
+                <i class="fas fa-expand-alt"></i> Centralizar
+            </button>
+            <button class="btn-map" onclick="alternarHeatmap()">
+                <i class="fas fa-fire"></i> Heatmap
+            </button>
+        </div>
+    </div>
 
-<div class="container">
-    <div id="mapa"></div>
-    <div class="loading" id="loading">Carregando dados...</div>
-</div>
+    <!-- Mapa e Sidebar -->
+    <div class="map-layout">
+        <div class="map-container">
+            <div id="mapa"></div>
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #27ae60;"></div>
+                    <span>≥ 75% (Excelente)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #5cb85c;"></div>
+                    <span>50% - 74% (Bom)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f0ad4e;"></div>
+                    <span>25% - 49% (Atenção)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d9534f;"></div>
+                    <span>&lt; 25% (Crítico)</span>
+                </div>
+            </div>
+        </div>
 
-<!-- Botão -->
-<div class="controle">
-    <button onclick="alternarHeatmap()">🔥 Alternar Heatmap</button>
-</div>
+        <div class="info-sidebar">
+            <!-- Busca -->
+            <div class="search-box">
+                <h4><i class="fas fa-search"></i> Buscar Escola</h4>
+                <input type="text" id="search-escola" placeholder="Digite o nome da escola...">
+                <div id="search-results" class="search-results"></div>
+            </div>
 
-<!-- Legenda -->
-<div class="legenda">
-    <strong>Legenda:</strong><br>
-    🟢 Com alfabetizados<br>
-    🔴 Sem alfabetizados<br>
-    ⚪ Sem dados<br>
-    <hr>
-    🔥 Heatmap = intensidade de alfabetização
+            <!-- Escola Selecionada -->
+            <div class="selected-school" id="selectedSchool" style="display: none;">
+                <h4><i class="fas fa-map-pin"></i> ESCOLA SELECIONADA</h4>
+                <h3 id="selectedSchoolName">-</h3>
+                <div class="school-meta" id="selectedSchoolMeta"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="selectedProgress" style="width: 0%;"></div>
+                </div>
+                <div id="selectedSchoolPercent" style="font-size: 18px; font-weight: bold; color: #1e2a3a; margin-top: 5px;"></div>
+            </div>
+
+            <!-- Camadas -->
+            <div class="layers-section">
+                <h4><i class="fas fa-layer-group"></i> Camadas de Classificação</h4>
+                <div class="layer-item" onclick="toggleLayer('excelente')">
+                    <div class="layer-info">
+                        <div class="layer-color" style="background: #27ae60;"></div>
+                        <div class="layer-name">
+                            Excelente <small>≥ 75% de alfabetização</small>
+                        </div>
+                    </div>
+                    <span class="layer-count" id="count-excelente">0</span>
+                </div>
+                <div class="layer-item" onclick="toggleLayer('bom')">
+                    <div class="layer-info">
+                        <div class="layer-color" style="background: #5cb85c;"></div>
+                        <div class="layer-name">
+                            Bom <small>50% - 74% de alfabetização</small>
+                        </div>
+                    </div>
+                    <span class="layer-count" id="count-bom">0</span>
+                </div>
+                <div class="layer-item" onclick="toggleLayer('atencao')">
+                    <div class="layer-info">
+                        <div class="layer-color" style="background: #f0ad4e;"></div>
+                        <div class="layer-name">
+                            Atenção <small>25% - 49% de alfabetização</small>
+                        </div>
+                    </div>
+                    <span class="layer-count" id="count-atencao">0</span>
+                </div>
+                <div class="layer-item" onclick="toggleLayer('critico')">
+                    <div class="layer-info">
+                        <div class="layer-color" style="background: #d9534f;"></div>
+                        <div class="layer-name">
+                            Crítico <small>&lt; 25% de alfabetização</small>
+                        </div>
+                    </div>
+                    <span class="layer-count" id="count-critico">0</span>
+                </div>
+            </div>
+
+            <!-- Lista de Escolas -->
+            <div class="schools-list-section">
+                <h4><i class="fas fa-school"></i> Escolas por Classificação</h4>
+                <div id="schools-list-container">
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i> Carregando escolas...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
 <script>
-    const map = L.map('mapa').setView([-14.235, -53.132], 5);
-    const loading = document.getElementById("loading");
+    let map;
+    let heatLayer;
+    let markers = [];
+    let markerMap = new Map();
+    let heatData = [];
+    let escolasData = [];
+    let activeLayers = {
+        excelente: true,
+        bom: true,
+        atencao: true,
+        critico: true
+    };
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
-    // Ícones
-    const iconeVerde = new L.Icon({
-        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-        iconSize: [32, 32]
-    });
-
-    const iconeVermelho = new L.Icon({
-        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-        iconSize: [32, 32]
-    });
-
-    const iconeCinza = new L.Icon({
-        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/grey-dot.png',
-        iconSize: [32, 32]
-    });
-
-    function definirIcone(escola) {
-        if (!escola.alfabetometro) return iconeCinza;
-
-        const alfabetico = escola.alfabetometro.qtd_alfabetico || 0;
-
-        return alfabetico > 0 ? iconeVerde : iconeVermelho;
+    // Classificação da escola
+    function classificarEscola(percentual) {
+        if (percentual >= 75) return 'excelente';
+        if (percentual >= 50) return 'bom';
+        if (percentual >= 25) return 'atencao';
+        return 'critico';
     }
 
+    // Cor baseada no percentual
+    function getColor(percentual) {
+        if (percentual >= 75) return '#27ae60';
+        if (percentual >= 50) return '#5cb85c';
+        if (percentual >= 25) return '#f0ad4e';
+        return '#d9534f';
+    }
+
+    // Inicializar mapa
+    function initMap() {
+        map = L.map('mapa').setView([-14.235, -53.132], 5);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap & CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+    }
+
+    // Criar ícone customizado
+    function criarIcone(percentual) {
+        const cor = getColor(percentual);
+        let tamanho = 36;
+        if (percentual >= 75) tamanho = 42;
+        else if (percentual >= 50) tamanho = 38;
+        else if (percentual >= 25) tamanho = 34;
+        else tamanho = 30;
+        
+        const html = `<div style="
+            width: ${tamanho}px;
+            height: ${tamanho}px;
+            background: ${cor};
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: ${tamanho * 0.33}px;
+            font-family: Arial;
+        ">${Math.round(percentual)}%</div>`;
+        
+        return L.divIcon({
+            html: html,
+            className: 'custom-marker',
+            iconSize: [tamanho, tamanho],
+            popupAnchor: [0, -tamanho/2]
+        });
+    }
+
+    // Criar popup
     function criarPopup(escola) {
-        let percentual = 0;
-
-        if (escola.alfabetometro) {
-            const total = escola.alfabetometro.qtd_alunos_ano || 0;
-            const alfabetico = escola.alfabetometro.qtd_alfabetico || 0;
-            percentual = total > 0 ? ((alfabetico / total) * 100).toFixed(1) : 0;
-        }
-
         return `
-            <strong>${escola.nome}</strong><br>
-            📍 ${escola.endereco}<br>
-            🏙️ ${escola.localidade}<br>
-            👨‍🏫 ${escola.gestor || 'Não informado'}
-            <hr>
-            ${
-                escola.alfabetometro
-                
-                ? `📊 ${percentual}% alfabetizados`
-                : `<em>Sem dados</em>`
-                
-                
-            }
+            <div style="min-width: 220px;">
+                <h4 style="margin: 0 0 5px; color: #1e2a3a;">${escola.nome}</h4>
+                <div style="font-size: 11px; color: #666;">${escola.localidade || 'Localidade não informada'}</div>
+                <hr style="margin: 8px 0;">
+                <div><strong>Total alunos:</strong> ${escola.total}</div>
+                <div><strong>Alfabetizados:</strong> ${escola.alfabetico}</div>
+                <div><strong>Percentual:</strong> <span style="color: ${getColor(escola.percentual)}; font-weight: bold;">${escola.percentual.toFixed(1)}%</span></div>
+                <div style="background: #e0e0e0; border-radius: 10px; height: 6px; margin-top: 8px;">
+                    <div style="width: ${escola.percentual}%; background: ${getColor(escola.percentual)}; height: 6px; border-radius: 10px;"></div>
+                </div>
+            </div>
         `;
     }
 
-    let heatData = [];
-    let heatLayer;
-
-    function carregarDadosEscolas() {
-        fetch("{% url 'dados_escolas_json' %}")
-            .then(res => res.json())
-            .then(data => {
-                loading.style.display = "none";
-
-                const bounds = [];
-
-                data.forEach(escola => {
-                    if (escola.latitude && escola.longitude) {
-
-                        const latlng = [escola.latitude, escola.longitude];
-                        bounds.push(latlng);
-
-                        // marcador
-                        L.marker(latlng, {
-                            icon: definirIcone(escola)
-                        })
-                        .addTo(map)
-                        .bindPopup(criarPopup(escola));
-
-                        // heatmap
-                        const total = escola.alfabetometro?.qtd_alunos_ano || 0;
-                        const alfabetico = escola.alfabetometro?.qtd_alfabetico || 0;
-                        const intensidade = total > 0 ? (alfabetico / total) : 0;
-
-                        heatData.push([escola.latitude, escola.longitude, intensidade]);
-                    }
-                });
-
-                if (bounds.length) {
-                    map.fitBounds(bounds);
-                }
-
-                // cria heatmap
-                heatLayer = L.heatLayer(heatData, {
-                    radius: 25,
-                    blur: 15,
-                    maxZoom: 17
-                });
-
-            })
-            .catch(err => {
-                loading.innerText = "Erro ao carregar dados.";
-                console.error(err);
-            });
+    // Aplicar filtros por camada
+    function aplicarFiltros() {
+        markers.forEach(marker => {
+            const escola = marker.escolaData;
+            const classe = classificarEscola(escola.percentual);
+            if (activeLayers[classe]) {
+                if (!map.hasLayer(marker)) marker.addTo(map);
+            } else {
+                if (map.hasLayer(marker)) map.removeLayer(marker);
+            }
+        });
+        atualizarListaEscolas();
     }
 
-    function alternarHeatmap() {
-        if (!heatLayer) return;
+    // Alternar camada
+    function toggleLayer(classe) {
+        activeLayers[classe] = !activeLayers[classe];
+        aplicarFiltros();
+    }
 
-        if (map.hasLayer(heatLayer)) {
-            map.removeLayer(heatLayer);
-        } else {
-            map.addLayer(heatLayer);
+    // Selecionar escola
+    function selecionarEscola(id) {
+        const escola = escolasData.find(e => e.id === id);
+        if (!escola) return;
+        
+        document.getElementById('selectedSchool').style.display = 'block';
+        document.getElementById('selectedSchoolName').innerHTML = escola.nome;
+        document.getElementById('selectedSchoolMeta').innerHTML = `${escola.localidade || 'Localidade não informada'} • ${escola.total} alunos`;
+        document.getElementById('selectedProgress').style.width = `${escola.percentual}%`;
+        document.getElementById('selectedProgress').style.background = getColor(escola.percentual);
+        document.getElementById('selectedSchoolPercent').innerHTML = `${escola.percentual.toFixed(1)}% alfabetização`;
+        
+        if (escola.latitude && escola.longitude) {
+            map.setView([escola.latitude, escola.longitude], 15);
+            const marker = markerMap.get(escola.id);
+            if (marker) marker.openPopup();
         }
     }
 
-    carregarDadosEscolas();
+    // Atualizar lista de escolas no sidebar
+    function atualizarListaEscolas() {
+        const container = document.getElementById('schools-list-container');
+        
+        const grupos = { excelente: [], bom: [], atencao: [], critico: [] };
+        const titulos = {
+            excelente: { nome: 'Excelente', cor: '#27ae60' },
+            bom: { nome: 'Bom', cor: '#5cb85c' },
+            atencao: { nome: 'Atenção', cor: '#f0ad4e' },
+            critico: { nome: 'Crítico', cor: '#d9534f' }
+        };
+        
+        escolasData.forEach(escola => {
+            const classe = classificarEscola(escola.percentual);
+            if (activeLayers[classe]) {
+                grupos[classe].push(escola);
+            }
+        });
+        
+        let html = '';
+        for (const [classe, escolas] of Object.entries(grupos)) {
+            if (escolas.length > 0) {
+                html += `<div class="school-list-group">
+                            <div class="school-list-group-title" style="color: ${titulos[classe].cor};">
+                                ${titulos[classe].nome} (${escolas.length})
+                            </div>`;
+                escolas.forEach(escola => {
+                    html += `<div class="school-list-item ${classe}" onclick="selecionarEscola(${escola.id})">
+                                <div class="school-list-name">${escola.nome}</div>
+                                <div class="school-list-percent"><strong>${escola.percentual.toFixed(1)}%</strong> de alfabetização</div>
+                                <div class="school-list-location">${escola.localidade || ''}</div>
+                            </div>`;
+                });
+                html += `</div>`;
+            }
+        }
+        
+        if (html === '') {
+            html = '<div class="loading-placeholder">Nenhuma escola encontrada</div>';
+        }
+        
+        container.innerHTML = html;
+    }
+
+    // Buscar escolas
+    function buscarEscolas(termo) {
+        if (!termo || termo.length < 2) {
+            document.getElementById('search-results').innerHTML = '';
+            return;
+        }
+        
+        const resultados = escolasData.filter(e => 
+            e.nome.toLowerCase().includes(termo.toLowerCase())
+        ).slice(0, 8);
+        
+        const resultsDiv = document.getElementById('search-results');
+        if (resultados.length === 0) {
+            resultsDiv.innerHTML = '<div class="loading-placeholder">Nenhuma escola encontrada</div>';
+            return;
+        }
+        
+        let html = '';
+        resultados.forEach(e => {
+            html += `<div class="search-result-item" onclick="selecionarEscola(${e.id})">
+                        <strong>${e.nome}</strong><br>
+                        <small>${e.localidade || ''} - ${e.percentual.toFixed(1)}%</small>
+                    </div>`;
+        });
+        resultsDiv.innerHTML = html;
+    }
+
+    // Carregar dados da API
+    function carregarDados() {
+        fetch("{% url 'dados_escolas_json' %}")
+            .then(res => res.json())
+            .then(data => {
+                escolasData = data.filter(e => e.latitude && e.longitude && e.alfabetometro)
+                    .map((e, index) => {
+                        const total = e.alfabetometro.qtd_alunos_ano || 0;
+                        const alfabetico = e.alfabetometro.qtd_alfabetico || 0;
+                        const percentual = total > 0 ? (alfabetico / total) * 100 : 0;
+                        return { ...e, total, alfabetico, percentual, id: e.id || index + 1 };
+                    });
+                
+                let contadores = { excelente: 0, bom: 0, atencao: 0, critico: 0 };
+                const bounds = [];
+                
+                escolasData.forEach(escola => {
+                    if (escola.latitude && escola.longitude) {
+                        bounds.push([escola.latitude, escola.longitude]);
+                        contadores[classificarEscola(escola.percentual)]++;
+                        
+                        const marker = L.marker([escola.latitude, escola.longitude], {
+                            icon: criarIcone(escola.percentual)
+                        }).addTo(map);
+                        
+                        marker.bindPopup(criarPopup(escola));
+                        marker.escolaData = escola;
+                        markers.push(marker);
+                        markerMap.set(escola.id, marker);
+                        
+                        heatData.push([escola.latitude, escola.longitude, escola.percentual / 100]);
+                    }
+                });
+                
+                document.getElementById('count-excelente').innerText = contadores.excelente;
+                document.getElementById('count-bom').innerText = contadores.bom;
+                document.getElementById('count-atencao').innerText = contadores.atencao;
+                document.getElementById('count-critico').innerText = contadores.critico;
+                
+                if (bounds.length) map.fitBounds(bounds);
+                
+                heatLayer = L.heatLayer(heatData, { radius: 25, blur: 15, maxZoom: 17, minOpacity: 0.3 });
+                
+                atualizarListaEscolas();
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('schools-list-container').innerHTML = '<div class="loading-placeholder" style="color: red;">Erro ao carregar dados</div>';
+            });
+    }
+
+    // Alternar heatmap
+    function alternarHeatmap() {
+        if (!heatLayer) return;
+        if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+        else map.addLayer(heatLayer);
+    }
+
+    // Resetar zoom
+    function resetMapView() {
+        if (markers.length) {
+            const bounds = markers.filter(m => map.hasLayer(m)).map(m => m.getLatLng());
+            if (bounds.length) map.fitBounds(bounds);
+        } else {
+            map.setView([-14.235, -53.132], 5);
+        }
+    }
+
+    // Debounce para busca
+    let searchTimeout;
+    document.getElementById('search-escola').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => buscarEscolas(this.value), 300);
+    });
+
+    // Inicializar
+    initMap();
+    carregarDados();
 </script>
 
 </body>
 </html>
+
+{% endblock %}
