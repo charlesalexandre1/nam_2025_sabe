@@ -269,3 +269,104 @@ class AlfabetometroAdmin(admin.ModelAdmin):
             )
         }),
     )
+
+from django.contrib import admin
+from django.utils.html import format_html
+from .models import (
+    NivelEscrita,
+    Estudante,
+)
+
+
+@admin.register(NivelEscrita)
+class NivelEscritaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nome', 'total_estudantes')
+    search_fields = ('nome',)
+    ordering = ('nome',)
+
+    def total_estudantes(self, obj):
+        count = obj.estudantes.count()
+        return format_html(
+            '<span style="font-weight:bold; color:#2e7d32;">{}</span>',
+            count
+        )
+    total_estudantes.short_description = 'Total de Estudantes'
+
+
+class EstudanteInline(admin.TabularInline):
+    model = Estudante
+    extra = 0
+    fields = ('nome', 'serie', 'nivel_escrita', 'periodo', 'ano')
+    readonly_fields = ('data_cadastro',)
+    show_change_link = True
+
+
+@admin.register(Estudante)
+class EstudanteAdmin(admin.ModelAdmin):
+    list_display = (
+        'nome',
+        'escola',
+        'serie',
+        'nivel_escrita',
+        'periodo',
+        'ano',
+        'bairro',
+        'data_cadastro',
+    )
+
+    list_filter = (
+        'ano',
+        'serie',
+        'nivel_escrita',
+        'periodo',
+        'escola__localidade',
+    )
+
+    search_fields = (
+        'nome',
+        'escola__nome',
+        'bairro',
+        'endereco',
+    )
+
+    ordering = ('nome',)
+
+    readonly_fields = ('data_cadastro', 'data_atualizacao')
+
+    fieldsets = (
+        ('Dados Pessoais', {
+            'fields': (
+                'nome',
+                'endereco',
+                'bairro',
+            )
+        }),
+        ('Vínculo Escolar', {
+            'fields': (
+                'escola',
+                'serie',
+                'nivel_escrita',
+                'periodo',
+                'ano',
+            )
+        }),
+        ('Auditoria', {
+            'classes': ('collapse',),
+            'fields': (
+                'data_cadastro',
+                'data_atualizacao',
+            )
+        }),
+    )
+
+    autocomplete_fields = ('escola', 'serie', 'nivel_escrita')
+
+    list_per_page = 50
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'escola',
+            'serie',
+            'nivel_escrita',
+            'escola__localidade',
+        )

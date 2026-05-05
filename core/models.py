@@ -1048,3 +1048,69 @@ class Alfabetometro(models.Model):
     def __str__(self):
         periodo_str = f" ({self.periodo})" if self.periodo else ""
         return f"Alfabetômetro de {self.escola.nome} - {self.ano_referencia}{periodo_str}"
+
+# estudantes led
+
+# Tabela: Nível de Escrita
+class NivelEscrita(models.Model):
+    nome = models.CharField('Nome do Nível de Escrita', max_length=100)
+
+    class Meta:
+        verbose_name = 'Nível de Escrita'
+        verbose_name_plural = 'Níveis de Escrita'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+# Tabela: Estudantes
+class Estudante(models.Model):
+    nome = models.CharField('Nome do Estudante', max_length=255)
+    endereco = models.CharField('Endereço', max_length=255, blank=True, null=True)
+    bairro = models.CharField('Bairro', max_length=100, blank=True, null=True)
+
+    escola = models.ForeignKey(
+        Escola,
+        on_delete=models.CASCADE,
+        related_name='estudantes',
+        verbose_name='Escola'
+    )
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        related_name='estudantes',
+        verbose_name='Série/Ano'
+    )
+    nivel_escrita = models.ForeignKey(
+        NivelEscrita,
+        on_delete=models.SET_NULL,
+        related_name='estudantes',
+        verbose_name='Nível de Escrita',
+        null=True,
+        blank=True
+    )
+
+    periodo = models.CharField(
+        'Período',
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text='Ex: Manhã, Tarde, Noite'
+    )
+    ano = models.PositiveIntegerField('Ano de Referência')
+
+    data_cadastro = models.DateTimeField('Data de Cadastro', auto_now_add=True)
+    data_atualizacao = models.DateTimeField('Data de Atualização', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Estudante'
+        verbose_name_plural = 'Estudantes'
+        ordering = ['nome']
+        indexes = [
+            models.Index(fields=['escola', 'serie', 'ano']),
+            models.Index(fields=['nivel_escrita']),
+        ]
+
+    def __str__(self):
+        return f"{self.nome} - {self.escola.nome} ({self.serie})"

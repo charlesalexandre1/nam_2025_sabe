@@ -2543,14 +2543,38 @@ from .models import Escola, Alfabetometro
 from django.db.models import Sum
 
 
+from django.shortcuts import render
+from .models import Alfabetometro, Escola, Localidade, Estudante
+
+
 def relatorio_alfabetometro(request):
 
+    # ── Filtros recebidos via GET ─────────────────────────────
+    localidade_id    = request.GET.get('localidade', '')
+    periodo          = request.GET.get('periodo', '')
+    ano              = request.GET.get('ano', '')
+    escola_id_filtro = request.GET.get('escola', '')
+
+    # ── QuerySet base do Alfabetometro ────────────────────────
     registros = (
         Alfabetometro.objects
-        .select_related('escola')
+        .select_related('escola', 'escola__localidade')
         .all()
     )
 
+    if localidade_id:
+        registros = registros.filter(escola__localidade_id=localidade_id)
+
+    if periodo:
+        registros = registros.filter(periodo=periodo)
+
+    if ano:
+        registros = registros.filter(ano_referencia=ano)
+
+    if escola_id_filtro:
+        registros = registros.filter(escola_id=escola_id_filtro)
+
+    # ── Montagem dos dados agrupados por escola ───────────────
     escolas_dict = {}
 
     for r in registros:
@@ -2558,67 +2582,156 @@ def relatorio_alfabetometro(request):
 
         if escola_id not in escolas_dict:
             escolas_dict[escola_id] = {
-                "nome": r.escola.nome,
-                "localidade": r.escola.localidade,
-                "series": [],
-                "total_alunos": 0,
-                "total_alfabetico": 0,
-                "total_pre": 0,
-                "total_silabico": 0,
+                "id":                        escola_id,
+                "nome":                      r.escola.nome,
+                "localidade":                str(r.escola.localidade),
+                "localidade_id":             r.escola.localidade_id,
+                "series":                    [],
+                "total_alunos":              0,
+                "total_alfabetico":          0,
+                "total_pre":                 0,
+                "total_silabico":            0,
                 "total_silabico_alfabetico": 0,
+                "estudantes":               [],     # preenchido abaixo
             }
 
         escola = escolas_dict[escola_id]
 
-        total = r.qtd_alunos_ano
-        alfabetico = r.qtd_alfabetico
-
-        percentual = (alfabetico / total * 100) if total > 0 else 0
+        total     = r.qtd_alunos_ano or 0
+        alfabetico = r.qtd_alfabetico or 0
+        percentual = round((alfabetico / total * 100), 1) if total > 0 else 0
 
         escola["series"].append({
-            "ano": r.ano_referencia,
-            "periodo": r.periodo,
-            "total": total,
-            "alfabetico": alfabetico,
-            "pre": r.qtd_pre_silabico,
-            "silabico": r.qtd_silabico,
-            "silabico_alfabetico": r.qtd_silabico_alfabetico,
-            "percentual": percentual,
+            "ano":                 r.ano_referencia,
+            "periodo":             r.periodo or "—",
+            "total":               total,
+            "alfabetico":          alfabetico,
+            "pre":                 r.qtd_pre_silabico or 0,
+            "silabico":            r.qtd_silabico or 0,
+            "silabico_alfabetico": r.qtd_silabico_alfabetico or 0,
+            "percentual":          percentual,
         })
 
-        escola["total_alunos"] += total
-        escola["total_alfabetico"] += alfabetico
-        escola["total_pre"] += r.qtd_pre_silabico
-        escola["total_silabico"] += r.qtd_silabico
-        escola["total_silabico_alfabetico"] += r.qtd_silabico_alfabetico
+        escola["total_alunos"]              += total
+        escola["total_alfabetico"]          += alfabetico
+        escola["total_pre"]                 += r.qtd_pre_silabico or 0
+        escola["total_silabico"]            += r.qtd_silabico or 0
+        escola["total_silabico_alfabetico"] += r.qtd_silabico_alfabetico or 0
 
-    # cálculo geral
+    # ── Estudantes: busca única para todas as escolas ─────────
+    estudantes_qs = (
+        Estudante.objects
+        .select_related('serie', 'nivel_escrita', 'escola')
+        .filter(escola_id__in=escolas_dict.keys())
+        .order_by('nome')
+    )
+
+    # Aplica os mesmos filtros de ano e período nos estudantes
+    if ano:
+        estudantes_qs = estudantes_qs.filter(ano=ano)
+
+    if periodo:
+        estudantes_qs = estudantes_qs.filter(periodo=periodo)
+
+    # Agrupa estudantes por escola usando dict
+    estudantes_por_escola = {}
+    for est in estudantes_qs:
+        eid = est.escola_id
+        if eid not in estudantes_por_escola:
+            estudantes_por_escola[eid] = []
+
+        estudantes_por_escola[eid].append({
+            "nome":          est.nome,
+            "serie":         str(est.serie) if est.serie else "—",
+            "nivel_escrita": str(est.nivel_escrita) if est.nivel_escrita else "—",
+            "periodo":       est.periodo or "—",
+            "ano":           est.ano,
+            "bairro":        est.bairro or "—",
+            "endereco":      est.endereco or "—",
+        })
+
+    # ── Finaliza dados + totais gerais ────────────────────────
     dados = []
+    total_geral                     = 0
+    total_alfabetico_geral          = 0
+    total_pre_geral                 = 0
+    total_silabico_geral            = 0
+    total_silabico_alfabetico_geral = 0
 
-    total_geral = 0
-    total_alfabetico_geral = 0
-
-    for e in escolas_dict.values():
+    for escola_id, e in escolas_dict.items():
         total = e["total_alunos"]
-        alfa = e["total_alfabetico"]
+        alfa  = e["total_alfabetico"]
 
-        percentual = (alfa / total * 100) if total > 0 else 0
+        e["percentual_total"] = round((alfa / total * 100), 1) if total > 0 else 0
 
-        e["percentual_total"] = percentual
+        # Injeta estudantes no bloco da escola
+        e["estudantes"]       = estudantes_por_escola.get(escola_id, [])
+        e["total_estudantes"] = len(e["estudantes"])
 
-        total_geral += total
-        total_alfabetico_geral += alfa
+        total_geral                     += total
+        total_alfabetico_geral          += alfa
+        total_pre_geral                 += e["total_pre"]
+        total_silabico_geral            += e["total_silabico"]
+        total_silabico_alfabetico_geral += e["total_silabico_alfabetico"]
 
         dados.append(e)
 
-    percentual_geral = (total_alfabetico_geral / total_geral * 100) if total_geral > 0 else 0
+    # Ordena por nome de escola
+    dados.sort(key=lambda x: x["nome"])
+
+    percentual_geral = (
+        round((total_alfabetico_geral / total_geral * 100), 1)
+        if total_geral > 0 else 0
+    )
+
+    # ── Dados para os selects dos filtros ─────────────────────
+    localidades = Localidade.objects.all().order_by('nome')
+
+    escolas_list = (
+        Escola.objects
+        .select_related('localidade')
+        .all()
+        .order_by('nome')
+    )
+
+    anos_disponiveis = (
+        Alfabetometro.objects
+        .values_list('ano_referencia', flat=True)
+        .distinct()
+        .order_by('-ano_referencia')
+    )
+
+    periodos_disponiveis = (
+        Alfabetometro.objects
+        .values_list('periodo', flat=True)
+        .distinct()
+        .exclude(periodo__isnull=True)
+        .exclude(periodo='')
+        .order_by('periodo')
+    )
 
     context = {
-        "dados": dados,
-        "total_escolas": len(dados),
-        "total_geral": total_geral,
-        "total_alfabetico_geral": total_alfabetico_geral,
-        "percentual_geral": percentual_geral,
+        # dados do relatório
+        "dados":                          dados,
+        "total_escolas":                  len(dados),
+        "total_geral":                    total_geral,
+        "total_alfabetico_geral":         total_alfabetico_geral,
+        "total_pre_geral":                total_pre_geral,
+        "total_silabico_geral":           total_silabico_geral,
+        "total_silabico_alfabetico_geral": total_silabico_alfabetico_geral,
+        "percentual_geral":               percentual_geral,
+
+        # selects
+        "localidades":         localidades,
+        "escolas_list":        escolas_list,
+        "anos_disponiveis":    anos_disponiveis,
+        "periodos_disponiveis": periodos_disponiveis,
+
+        # valores selecionados (mantém estado dos filtros)
+        "localidade_selecionada": localidade_id,
+        "periodo_selecionado":    periodo,
+        "ano_selecionado":        ano,
+        "escola_selecionada":     escola_id_filtro,
     }
 
     return render(request, "dashboard/relatorio_alfabetometro.html", context)

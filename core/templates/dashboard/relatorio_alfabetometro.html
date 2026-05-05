@@ -1,24 +1,48 @@
 {% extends "base.html" %}
-{% load painel_tags %}
+{% load painel_tags %} {# Certifique-se de que 'painel_tags' está configurado corretamente #}
 
 {% block content %}
 
 <style>
+/* ── Estilos para Impressão ───────────────────────── */
 @media print {
     @page {
-        size: A4 landscape;
-        margin: 10mm;
+        size: A4 landscape; /* Define o tamanho da página para A4 e orientação paisagem */
+        margin: 10mm;      /* Margens de 10mm em todos os lados */
     }
-    .no-print, .btn, select { display: none !important; }
-    body { background: #fff; font-size: 8pt; }
-    .card { page-break-inside: avoid; border: 1px solid #ccc; }
-    table { font-size: 8px; }
-    thead { display: table-header-group; }
-    .escola-bloco { page-break-inside: avoid; margin-bottom: 12px; }
+    /* Esconde elementos que não devem aparecer na impressão */
+    .no-print, .btn, select, input[type="text"] { display: none !important; }
+    body {
+        background: #fff; /* Fundo branco para impressão */
+        font-size: 8pt;   /* Tamanho de fonte menor para otimizar espaço */
+        margin: 0;        /* Remove margens do body */
+    }
+    .card {
+        page-break-inside: avoid; /* Evita que cards sejam quebrados no meio de uma página */
+        border: 1px solid #ccc;   /* Borda sutil para cards */
+        box-shadow: none;         /* Remove sombra para impressão */
+        margin: 8px 0;            /* Margem menor entre cards */
+    }
+    table {
+        font-size: 8px; /* Fonte menor para tabelas */
+        width: 100%;    /* Garante que a tabela ocupe 100% da largura disponível */
+    }
+    thead { display: table-header-group; } /* Garante que o cabeçalho da tabela se repita em novas páginas */
+    .escola-bloco {
+        page-break-inside: avoid; /* Evita que o bloco da escola seja quebrado */
+        margin-bottom: 12px;      /* Margem inferior para separar blocos de escola */
+    }
+    /* Força a cor do texto para preto para melhor legibilidade na impressão */
+    .text-success, .text-warning, .text-danger { color: #000 !important; }
+    .badge-nivel, .badge-percentual {
+        border: 1px solid #ccc; /* Adiciona borda para badges na impressão */
+        background: #f0f0f0;    /* Fundo claro para badges */
+        color: #000 !important; /* Texto preto */
+    }
 }
 
 /* ── Base ─────────────────────────────────────────── */
-body { font-family: Arial; background: #f8f9fa; }
+body { font-family: Arial, sans-serif; background: #f8f9fa; }
 
 .card {
     background: white;
@@ -171,15 +195,52 @@ tfoot tr td {
 </style>
 
 <!-- ══════════════════════════════════════════════════
-     FILTROS (exemplo - adapte conforme necessidade)
+     FILTROS
 ════════════════════════════════════════════════════ -->
 <div class="card no-print">
     <form method="get" class="filter-form">
+
         <div>
             <label>Localidade:</label>
-            <select name="localidade">
+            <select name="localidade" id="select-localidade">
                 <option value="">Todas</option>
-                <!-- Adaptar conforme seu modelo de Localidade -->
+                {% for loc in localidades %}
+                <option value="{{ loc.id }}"
+                    {% if loc.id|stringformat:"s" == localidade_selecionada %}
+                        selected
+                    {% endif %}>
+                    {{ loc.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Escola:</label>
+            <select name="escola" id="select-escola">
+                <option value="">Todas</option>
+                {% for esc in escolas_list %}
+                <option value="{{ esc.id }}"
+                    data-localidade="{{ esc.localidade_id }}"
+                    {% if esc.id|stringformat:"s" == escola_selecionada %}
+                        selected
+                    {% endif %}>
+                    {{ esc.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Ano:</label>
+            <select name="ano">
+                <option value="">Todos</option>
+                {% for a in anos_disponiveis %}
+                <option value="{{ a }}"
+                    {% if a|stringformat:"s" == ano_selecionado %}selected{% endif %}>
+                    {{ a }}
+                </option>
+                {% endfor %}
             </select>
         </div>
 
@@ -187,8 +248,12 @@ tfoot tr td {
             <label>Período:</label>
             <select name="periodo">
                 <option value="">Todos</option>
-                <option value="1º Semestre">1º Semestre</option>
-                <option value="2º Semestre">2º Semestre</option>
+                {% for p in periodos_disponiveis %}
+                <option value="{{ p }}"
+                    {% if p == periodo_selecionado %}selected{% endif %}>
+                    {{ p }}
+                </option>
+                {% endfor %}
             </select>
         </div>
 
@@ -226,7 +291,7 @@ tfoot tr td {
 
         <div class="stat">
             <small>Pré-silábicos</small>
-            <p>{{ total_pre_silabico_geral }}</p>
+            <p>{{ total_pre_geral }}</p>
         </div>
         <div class="stat">
             <small>% Alfabetização Geral</small>
@@ -234,10 +299,6 @@ tfoot tr td {
         </div>
     </div>
 </div>
-
-<!-- ══════════════════════════════════════════════════
-     RESUMO VISUAL — PERCENTUAL ALFABETIZAÇÃO POR ANO
-════════════════════════════════════════════════════ -->
 
 <!-- ══════════════════════════════════════════════════
      TÍTULO DO RELATÓRIO
@@ -313,7 +374,7 @@ tfoot tr td {
                 </span>
             </td>
             <td class="text-center">
-                <span class="badge-percentual 
+                <span class="badge-percentual
                     {% if serie.percentual >= 70 %}badge-ok
                     {% elif serie.percentual >= 50 %}badge-warn
                     {% else %}badge-bad{% endif %}">
@@ -358,6 +419,76 @@ tfoot tr td {
             </tr>
         </tfoot>
     </table>
+
+    {# Painel de estudantes colapsável por escola #}
+    {% if escola.estudantes %}
+    <div style="padding:10px 14px; background:#f8f9fa; border-top:1px solid #dee2e6;">
+
+        <button
+            class="btn btn-secondary no-print"
+            style="font-size:12px; padding:4px 12px; margin-bottom:8px;"
+            onclick="toggleEstudantes('est-{{ escola.id }}', this)">
+            👥 Ver Estudantes ({{ escola.total_estudantes }})
+        </button>
+
+        <div id="est-{{ escola.id }}" style="display:none;">
+
+            <!-- busca local dentro da tabela de estudantes -->
+            <input
+                class="no-print"
+                type="text"
+                placeholder="🔍 Buscar estudante..."
+                onkeyup="filtrarEstudantes(this, 'tabela-est-{{ escola.id }}')"
+                style="margin-bottom:6px; padding:5px 8px; border:1px solid #ccc;
+                       border-radius:4px; width:260px; font-size:12px;">
+
+            <table id="tabela-est-{{ escola.id }}"
+                   style="font-size:0.82em; margin-top:4px;">
+                <thead>
+                    <tr>
+                        <th style="width:28%;">Nome</th>
+                        <th style="width:14%;" class="text-center">Série</th>
+                        <th style="width:20%;" class="text-center">Nível de Escrita</th>
+                        <th style="width:10%;" class="text-center">Período</th>
+                        <th style="width:8%;"  class="text-center">Ano</th>
+                        <th style="width:20%;">Bairro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for est in escola.estudantes %}
+                    <tr>
+                        <td>{{ est.nome }}</td>
+                        <td class="text-center">{{ est.serie }}</td>
+                        <td class="text-center">
+                            {% if "Alfabético" == est.nivel_escrita %}
+                                <span class="badge-nivel badge-alfabetico">{{ est.nivel_escrita }}</span>
+                            {% elif "Silábico-Alfabético" == est.nivel_escrita %}
+                                <span class="badge-nivel badge-silabico-alfabetico">{{ est.nivel_escrita }}</span>
+                            {% elif "Silábico" == est.nivel_escrita %}
+                                <span class="badge-nivel badge-silabico">{{ est.nivel_escrita }}</span>
+                            {% else %}
+                                <span class="badge-nivel badge-pre-silabico">{{ est.nivel_escrita }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ est.periodo }}</td>
+                        <td class="text-center">{{ est.ano }}</td>
+                        <td>{{ est.bairro }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <p style="font-size:11px; color:#adb5bd; margin-top:6px;">
+                {{ escola.total_estudantes }} estudante(s) encontrado(s)
+            </p>
+        </div>
+    </div>
+    {% else %}
+    <div style="padding:8px 14px; background:#f8f9fa;
+                border-top:1px solid #dee2e6; font-size:12px; color:#adb5bd;">
+        Nenhum estudante cadastrado para esta escola.
+    </div>
+    {% endif %}
 
 </div><!-- /escola-bloco -->
 {% endfor %}
@@ -419,5 +550,73 @@ tfoot tr td {
         <span class="badge-percentual badge-bad">< 50% Crítico</span>
     </p>
 </div>
+
+<script>
+// ── Abre/fecha o painel de estudantes ────────────────────────
+function toggleEstudantes(id, btn) {
+    const painel = document.getElementById(id);
+    if (!painel) return;
+    const aberto = painel.style.display !== 'none';
+    painel.style.display = aberto ? 'none' : 'block';
+    btn.textContent = aberto
+        ? btn.textContent.replace('Ocultar', 'Ver')
+        : btn.textContent.replace('Ver', 'Ocultar');
+}
+
+// ── Busca local dentro da tabela de estudantes ────────────────
+function filtrarEstudantes(input, tabelaId) {
+    const filtro = input.value.toLowerCase();
+    const tabela = document.getElementById(tabelaId);
+    if (!tabela) return;
+
+    tabela.querySelectorAll('tbody tr').forEach(function (row) {
+        const texto = row.textContent.toLowerCase();
+        row.style.display = texto.includes(filtro) ? '' : 'none';
+    });
+}
+
+// ── Filtra escolas no select ao mudar localidade ─────────────
+document.addEventListener('DOMContentLoaded', function () {
+    const selectLocalidade = document.getElementById('select-localidade');
+    const selectEscola     = document.getElementById('select-escola');
+
+    if (!selectLocalidade || !selectEscola) return;
+
+    // Salva snapshot de todas as options de escola
+    const todasOpcoes = Array.from(selectEscola.options).map(opt => ({
+        value:      opt.value,
+        text:       opt.text,
+        localidade: opt.dataset.localidade || '',
+    }));
+
+    // Função para filtrar e popular o select de escolas
+    function aplicarFiltroEscola() {
+        const locId = selectLocalidade.value;
+        const escolaSelecionadaAtual = selectEscola.value; // Guarda a escola selecionada
+
+        selectEscola.innerHTML = '<option value="">Todas</option>';
+
+        todasOpcoes
+            .filter(o => o.value !== '' && (!locId || o.localidade === locId))
+            .forEach(o => {
+                const opt    = document.createElement('option');
+                opt.value    = o.value;
+                opt.text     = o.text;
+                opt.dataset.localidade = o.localidade;
+                // Mantém a escola selecionada se ela ainda for válida para a nova localidade
+                if (o.value === escolaSelecionadaAtual) {
+                    opt.selected = true;
+                }
+                selectEscola.appendChild(opt);
+            });
+    }
+
+    // Aplica o filtro inicial ao carregar a página
+    aplicarFiltroEscola();
+
+    // Adiciona o event listener para mudanças na localidade
+    selectLocalidade.addEventListener('change', aplicarFiltroEscola);
+});
+</script>
 
 {% endblock %}
