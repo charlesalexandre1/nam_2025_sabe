@@ -2480,72 +2480,146 @@ def relatorio_resultado_preliminar_saeb_2025(request):
         }
     )
 
-# mapa alfabetometro
-
 # escolas/views.py
+
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.core.serializers import serialize
-from .models import Escola, Alfabetometro
-import json
+from .models import Escola, Alfabetometro, Localidade, Estudante
+
+
+# ══════════════════════════════════════════════════════════════
+#  MAPA ALFABETÔMETRO
+# ══════════════════════════════════════════════════════════════
 
 def mapa_escolas(request):
     """
-    Renderiza a página HTML com o mapa das escolas.
+    Renderiza a página do mapa com os dados de estudantes
+    já disponíveis no contexto para o modal.
     """
-    return render(request, 'dashboard/mapa_escolas.html')
+
+    # ── Busca todos os registros de alfabetômetro ─────────────
+    registros = (
+        Alfabetometro.objects
+        .select_related('escola', 'escola__localidade')
+        .all()
+    )
+
+    # ── Monta estrutura agrupada por escola ───────────────────
+    escolas_dict = {}
+
+    for r in registros:
+        escola_id = r.escola.id
+
+        if escola_id not in escolas_dict:
+            escolas_dict[escola_id] = {
+                "id":               escola_id,
+                "nome":             r.escola.nome,
+                "localidade":       str(r.escola.localidade) if r.escola.localidade else "—",
+                "localidade_id":    r.escola.localidade_id,
+                "total_alunos":     0,
+                "total_alfabetico": 0,
+                "total_pre":        0,
+                "total_silabico":   0,
+                "total_silabico_alfabetico": 0,
+                "estudantes":       [],
+                "total_estudantes": 0,
+            }
+
+        e = escolas_dict[escola_id]
+        e["total_alunos"]              += r.qtd_alunos_ano or 0
+        e["total_alfabetico"]          += r.qtd_alfabetico or 0
+        e["total_pre"]                 += r.qtd_pre_silabico or 0
+        e["total_silabico"]            += r.qtd_silabico or 0
+        e["total_silabico_alfabetico"] += r.qtd_silabico_alfabetico or 0
+
+    # ── Busca estudantes de todas as escolas ──────────────────
+    estudantes_qs = (
+        Estudante.objects
+        .select_related('serie', 'nivel_escrita', 'escola')
+        .filter(escola_id__in=escolas_dict.keys())
+        .order_by('nome')
+    )
+
+    estudantes_por_escola = {}
+    for est in estudantes_qs:
+        eid = est.escola_id
+        if eid not in estudantes_por_escola:
+            estudantes_por_escola[eid] = []
+
+        estudantes_por_escola[eid].append({
+            "nome":          est.nome,
+            "serie":         str(est.serie)         if est.serie         else "—",
+            "nivel_escrita": str(est.nivel_escrita) if est.nivel_escrita else "—",
+            "periodo":       est.periodo or "—",
+            "ano":           est.ano    or "—",
+            "bairro":        est.bairro or "—",
+        })
+
+    # ── Finaliza cada escola ──────────────────────────────────
+    dados = []
+    for escola_id, e in escolas_dict.items():
+        total = e["total_alunos"]
+        alfa  = e["total_alfabetico"]
+        e["percentual_total"] = round((alfa / total * 100), 1) if total > 0 else 0
+        e["estudantes"]       = estudantes_por_escola.get(escola_id, [])
+        e["total_estudantes"] = len(e["estudantes"])
+        dados.append(e)
+
+    dados.sort(key=lambda x: x["nome"])
+
+    context = {
+        "dados": dados,
+    }
+
+    return render(request, 'dashboard/mapa_escolas.html', context)
+
 
 def dados_escolas_json(request):
     """
-    Retorna os dados das escolas e seus alfabetômetros mais recentes em formato JSON.
+    Retorna os dados das escolas e seus alfabetômetros
+    mais recentes em formato JSON para o Leaflet.
     """
     escolas_com_dados = []
     escolas = Escola.objects.all().prefetch_related('alfabetometro_data')
 
     for escola in escolas:
-        # Tenta pegar o registro mais recente do Alfabetometro para esta escola
-        # Você pode ajustar a lógica aqui para pegar o dado de um ano/período específico
-        alfabetometro_recente = escola.alfabetometro_data.order_by('-ano_referencia', '-data_registro').first()
+        alfabetometro_recente = (
+            escola.alfabetometro_data
+            .order_by('-ano_referencia', '-data_registro')
+            .first()
+        )
 
         escola_data = {
-            'id': escola.id,
-            'nome': escola.nome,
-            'endereco': escola.endereco,
-            'latitude': float(escola.latitude) if escola.latitude else None,
-            'longitude': float(escola.longitude) if escola.longitude else None,
-            'gestor': escola.gestor,
-            'localidade': escola.localidade.nome if escola.localidade else None,
-            'alfabetometro': None
+            'id':         escola.id,
+            'nome':       escola.nome,
+            'endereco':   escola.endereco,
+            'latitude':   float(escola.latitude)  if escola.latitude  else None,
+            'longitude':  float(escola.longitude) if escola.longitude else None,
+            'gestor':     escola.gestor,
+            'localidade': escola.localidade.nome  if escola.localidade else None,
+            'alfabetometro': None,
         }
 
         if alfabetometro_recente:
             escola_data['alfabetometro'] = {
-                'ano_referencia': alfabetometro_recente.ano_referencia,
-                'periodo': alfabetometro_recente.periodo,
-                'qtd_alunos_ano': alfabetometro_recente.qtd_alunos_ano,
-                'qtd_pre_silabico': alfabetometro_recente.qtd_pre_silabico,
-                'qtd_silabico': alfabetometro_recente.qtd_silabico,
+                'ano_referencia':          alfabetometro_recente.ano_referencia,
+                'periodo':                 alfabetometro_recente.periodo,
+                'qtd_alunos_ano':          alfabetometro_recente.qtd_alunos_ano,
+                'qtd_pre_silabico':        alfabetometro_recente.qtd_pre_silabico,
+                'qtd_silabico':            alfabetometro_recente.qtd_silabico,
                 'qtd_silabico_alfabetico': alfabetometro_recente.qtd_silabico_alfabetico,
-                'qtd_alfabetico': alfabetometro_recente.qtd_alfabetico,
+                'qtd_alfabetico':          alfabetometro_recente.qtd_alfabetico,
             }
 
-        # Apenas adiciona escolas que possuem latitude e longitude válidas
         if escola_data['latitude'] is not None and escola_data['longitude'] is not None:
             escolas_com_dados.append(escola_data)
 
     return JsonResponse(escolas_com_dados, safe=False)
 
 
-# relatorio alfabetometro
-
-from django.shortcuts import render
-from .models import Escola, Alfabetometro
-from django.db.models import Sum
-
-
-from django.shortcuts import render
-from .models import Alfabetometro, Escola, Localidade, Estudante
-
+# ══════════════════════════════════════════════════════════════
+#  RELATÓRIO ALFABETÔMETRO
+# ══════════════════════════════════════════════════════════════
 
 def relatorio_alfabetometro(request):
 
@@ -2592,12 +2666,12 @@ def relatorio_alfabetometro(request):
                 "total_pre":                 0,
                 "total_silabico":            0,
                 "total_silabico_alfabetico": 0,
-                "estudantes":               [],     # preenchido abaixo
+                "estudantes":                [],
             }
 
         escola = escolas_dict[escola_id]
 
-        total     = r.qtd_alunos_ano or 0
+        total      = r.qtd_alunos_ano or 0
         alfabetico = r.qtd_alfabetico or 0
         percentual = round((alfabetico / total * 100), 1) if total > 0 else 0
 
@@ -2618,7 +2692,7 @@ def relatorio_alfabetometro(request):
         escola["total_silabico"]            += r.qtd_silabico or 0
         escola["total_silabico_alfabetico"] += r.qtd_silabico_alfabetico or 0
 
-    # ── Estudantes: busca única para todas as escolas ─────────
+    # ── Estudantes ────────────────────────────────────────────
     estudantes_qs = (
         Estudante.objects
         .select_related('serie', 'nivel_escrita', 'escola')
@@ -2626,14 +2700,12 @@ def relatorio_alfabetometro(request):
         .order_by('nome')
     )
 
-    # Aplica os mesmos filtros de ano e período nos estudantes
     if ano:
         estudantes_qs = estudantes_qs.filter(ano=ano)
 
     if periodo:
         estudantes_qs = estudantes_qs.filter(periodo=periodo)
 
-    # Agrupa estudantes por escola usando dict
     estudantes_por_escola = {}
     for est in estudantes_qs:
         eid = est.escola_id
@@ -2642,7 +2714,7 @@ def relatorio_alfabetometro(request):
 
         estudantes_por_escola[eid].append({
             "nome":          est.nome,
-            "serie":         str(est.serie) if est.serie else "—",
+            "serie":         str(est.serie)         if est.serie         else "—",
             "nivel_escrita": str(est.nivel_escrita) if est.nivel_escrita else "—",
             "periodo":       est.periodo or "—",
             "ano":           est.ano,
@@ -2663,8 +2735,6 @@ def relatorio_alfabetometro(request):
         alfa  = e["total_alfabetico"]
 
         e["percentual_total"] = round((alfa / total * 100), 1) if total > 0 else 0
-
-        # Injeta estudantes no bloco da escola
         e["estudantes"]       = estudantes_por_escola.get(escola_id, [])
         e["total_estudantes"] = len(e["estudantes"])
 
@@ -2676,7 +2746,6 @@ def relatorio_alfabetometro(request):
 
         dados.append(e)
 
-    # Ordena por nome de escola
     dados.sort(key=lambda x: x["nome"])
 
     percentual_geral = (
@@ -2712,19 +2781,19 @@ def relatorio_alfabetometro(request):
 
     context = {
         # dados do relatório
-        "dados":                          dados,
-        "total_escolas":                  len(dados),
-        "total_geral":                    total_geral,
-        "total_alfabetico_geral":         total_alfabetico_geral,
-        "total_pre_geral":                total_pre_geral,
-        "total_silabico_geral":           total_silabico_geral,
+        "dados":                           dados,
+        "total_escolas":                   len(dados),
+        "total_geral":                     total_geral,
+        "total_alfabetico_geral":          total_alfabetico_geral,
+        "total_pre_geral":                 total_pre_geral,
+        "total_silabico_geral":            total_silabico_geral,
         "total_silabico_alfabetico_geral": total_silabico_alfabetico_geral,
-        "percentual_geral":               percentual_geral,
+        "percentual_geral":                percentual_geral,
 
         # selects
-        "localidades":         localidades,
-        "escolas_list":        escolas_list,
-        "anos_disponiveis":    anos_disponiveis,
+        "localidades":          localidades,
+        "escolas_list":         escolas_list,
+        "anos_disponiveis":     anos_disponiveis,
         "periodos_disponiveis": periodos_disponiveis,
 
         # valores selecionados (mantém estado dos filtros)
