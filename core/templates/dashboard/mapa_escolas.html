@@ -14,14 +14,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
-        /* Reset e estilos base */
         .mapa-container {
             padding: 1px;
             background: #f4f6f9;
             min-height: calc(100vh - 10px);
         }
 
-        /* Header do conteúdo */
         .content-header {
             display: flex;
             justify-content: space-between;
@@ -67,7 +65,6 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
-        /* Layout Mapa + Sidebar */
         .map-layout {
             display: flex;
             gap: 20px;
@@ -88,7 +85,6 @@
             width: 100%;
         }
 
-        /* Sidebar direita */
         .info-sidebar {
             width: 350px;
             padding: 15px;
@@ -98,7 +94,6 @@
             border-left: 1px solid #e0e0e0;
         }
 
-        /* Busca */
         .search-box {
             margin-bottom: 20px;
         }
@@ -115,6 +110,7 @@
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 13px;
+            box-sizing: border-box;
         }
 
         #search-escola:focus {
@@ -141,7 +137,6 @@
             background: #e9ecef;
         }
 
-        /* Escola Selecionada */
         .selected-school {
             background: #f0f7ff;
             border-radius: 10px;
@@ -182,7 +177,6 @@
             transition: width 0.3s;
         }
 
-        /* Camadas de Classificação */
         .layers-section {
             margin-bottom: 20px;
             padding-bottom: 15px;
@@ -239,7 +233,6 @@
             font-weight: bold;
         }
 
-        /* Lista de Escolas */
         .schools-list-section h4 {
             font-size: 14px;
             color: #1e2a3a;
@@ -274,9 +267,9 @@
         }
 
         .school-list-item.excelente { border-left-color: #27ae60; }
-        .school-list-item.bom { border-left-color: #5cb85c; }
-        .school-list-item.atencao { border-left-color: #f0ad4e; }
-        .school-list-item.critico { border-left-color: #d9534f; }
+        .school-list-item.bom       { border-left-color: #5cb85c; }
+        .school-list-item.atencao   { border-left-color: #f0ad4e; }
+        .school-list-item.critico   { border-left-color: #d9534f; }
 
         .school-list-name {
             font-weight: 600;
@@ -296,7 +289,6 @@
             margin-top: 2px;
         }
 
-        /* Legenda do Mapa */
         .map-legend {
             position: absolute;
             bottom: 10px;
@@ -322,25 +314,166 @@
             border-radius: 50%;
         }
 
-        /* Scrollbar */
-        .info-sidebar::-webkit-scrollbar {
-            width: 5px;
-        }
+        .info-sidebar::-webkit-scrollbar { width: 5px; }
+        .info-sidebar::-webkit-scrollbar-track { background: #ffffff; }
+        .info-sidebar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 5px; }
 
-        .info-sidebar::-webkit-scrollbar-track {
-            background: #ffffff;
-        }
-
-        .info-sidebar::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 5px;
-        }
-
-        /* Loading */
         .loading-placeholder {
             text-align: center;
             padding: 20px;
             color: #999;
+        }
+
+        /* ── Modal Estudantes ─────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.ativo {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            width: 92%;
+            max-width: 880px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: modalEntrar 0.2s ease;
+        }
+
+        @keyframes modalEntrar {
+            from { opacity: 0; transform: scale(0.95); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            background: #4c9bc0;
+            color: rgb(7, 7, 7);
+            padding: 5px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        .modal-header h3{
+            margin: 0;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .modal-header small {
+            opacity: 0.7;
+            font-size: 10x;
+            display: block;
+            margin-top: 3px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .modal-close:hover { color: #ff9800; }
+
+        .modal-search {
+            padding: 10px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .modal-search input, .modal-search select {
+            width: 100%; /* Ajustado para flexbox */
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        .modal-search input:focus, .modal-search select:focus {
+            outline: none;
+            border-color: #ff9800;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            padding: 14px 16px;
+            flex: 1;
+        }
+
+        .modal-body table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .modal-body th,
+        .modal-body td {
+            padding: 6px 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        .modal-body th {
+            background: #e9ecef;
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .modal-body tbody tr:hover { background: #f8f9fa; }
+
+        .modal-footer {
+            padding: 8px 16px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 11px;
+            color: #adb5bd;
+            flex-shrink: 0;
+            background: #fafafa;
+        }
+
+        .text-center { text-align: center; }
+
+        /* Badges de nível */
+        .badge-nivel {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 700;
+        }
+        .badge-pre-silabico        { background: #f8d7da; color: #721c24; }
+        .badge-silabico            { background: #fff3cd; color: #856404; }
+        .badge-silabico-alfabetico { background: #cce5ff; color: #004085; }
+        .badge-alfabetico          { background: #d4edda; color: #155724; }
+
+        /* Sem dados no modal */
+        .modal-vazio {
+            text-align: center;
+            padding: 40px 20px;
+            color: #adb5bd;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -348,11 +481,12 @@
 <body>
 
 <div class="mapa-container">
+
     <!-- Cabeçalho -->
     <div class="content-header">
         <div>
-            <h2>Mapa da Alfabetização - Inicial/2026</h2>
-            <p>Acompanhamento do percentual de alunos alfabetizados por escola</p>
+            <h2>Mapa da Alfabetização — Estudantes do 2º Ano</h2>
+
         </div>
         <div class="header-buttons">
             <button class="btn-map" onclick="resetMapView()">
@@ -370,25 +504,26 @@
             <div id="mapa"></div>
             <div class="map-legend">
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #27ae60;"></div>
+                    <div class="legend-color" style="background:#27ae60;"></div>
                     <span>≥ 75% (Excelente)</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #5cb85c;"></div>
+                    <div class="legend-color" style="background:#5cb85c;"></div>
                     <span>50% - 74% (Bom)</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #f0ad4e;"></div>
+                    <div class="legend-color" style="background:#f0ad4e;"></div>
                     <span>25% - 49% (Atenção)</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #d9534f;"></div>
-                    <span>&lt; 25% (Crítico)</span>
+                    <div class="legend-color" style="background:#d9534f;"></div>
+                    <span>< 25% (Crítico)</span>
                 </div>
             </div>
         </div>
 
         <div class="info-sidebar">
+
             <!-- Busca -->
             <div class="search-box">
                 <h4><i class="fas fa-search"></i> Buscar Escola</h4>
@@ -397,51 +532,57 @@
             </div>
 
             <!-- Escola Selecionada -->
-            <div class="selected-school" id="selectedSchool" style="display: none;">
+            <div class="selected-school" id="selectedSchool" style="display:none;">
                 <h4><i class="fas fa-map-pin"></i> ESCOLA SELECIONADA</h4>
                 <h3 id="selectedSchoolName">-</h3>
                 <div class="school-meta" id="selectedSchoolMeta"></div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="selectedProgress" style="width: 0%;"></div>
+                    <div class="progress-fill" id="selectedProgress" style="width:0%;"></div>
                 </div>
-                <div id="selectedSchoolPercent" style="font-size: 18px; font-weight: bold; color: #1e2a3a; margin-top: 5px;"></div>
+                <div id="selectedSchoolPercent"
+                     style="font-size:18px; font-weight:bold; color:#dce0e4; margin-top:5px;">
+                </div>
             </div>
 
             <!-- Camadas -->
             <div class="layers-section">
                 <h4><i class="fas fa-layer-group"></i> Camadas de Classificação</h4>
+
                 <div class="layer-item" onclick="toggleLayer('excelente')">
                     <div class="layer-info">
-                        <div class="layer-color" style="background: #27ae60;"></div>
+                        <div class="layer-color" style="background:#27ae60;"></div>
                         <div class="layer-name">
                             Excelente <small>≥ 75% de alfabetização</small>
                         </div>
                     </div>
                     <span class="layer-count" id="count-excelente">0</span>
                 </div>
+
                 <div class="layer-item" onclick="toggleLayer('bom')">
                     <div class="layer-info">
-                        <div class="layer-color" style="background: #5cb85c;"></div>
+                        <div class="layer-color" style="background:#5cb85c;"></div>
                         <div class="layer-name">
                             Bom <small>50% - 74% de alfabetização</small>
                         </div>
                     </div>
                     <span class="layer-count" id="count-bom">0</span>
                 </div>
-                <div class="layer-item" onclick="toggleLayer('atencao')">
+
+                <div class="layer-item" onclick="toggleLayer('atencao')" >
                     <div class="layer-info">
-                        <div class="layer-color" style="background: #f0ad4e;"></div>
+                        <div class="layer-color" style="background:#f0ad4e;"></div>
                         <div class="layer-name">
                             Atenção <small>25% - 49% de alfabetização</small>
                         </div>
                     </div>
                     <span class="layer-count" id="count-atencao">0</span>
                 </div>
+
                 <div class="layer-item" onclick="toggleLayer('critico')">
                     <div class="layer-info">
-                        <div class="layer-color" style="background: #d9534f;"></div>
+                        <div class="layer-color" style="background:#d9534f;"></div>
                         <div class="layer-name">
-                            Crítico <small>&lt; 25% de alfabetização</small>
+                            Crítico <small>< 25% de alfabetização</small>
                         </div>
                     </div>
                     <span class="layer-count" id="count-critico">0</span>
@@ -457,9 +598,96 @@
                     </div>
                 </div>
             </div>
+
+        </div><!-- /info-sidebar -->
+    </div><!-- /map-layout -->
+
+</div><!-- /mapa-container -->
+
+
+<!-- ══════════════════════════════════════════════════
+     MODAL DE ESTUDANTES
+════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalEstudantes" onclick="fecharModalFora(event)">
+    <div class="modal-box">
+
+        <div class="modal-header">
+            <div>
+                <h3 id="modalEscolaNome">Escola</h3>
+                <small id="modalEscolaMeta"></small>
+            </div>
+            <button class="modal-close" onclick="fecharModal()" title="Fechar">×</button>
         </div>
+
+        <div class="modal-search">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <input type="text"
+                       id="modalBuscaEstudanteNome"
+                       placeholder="🔍 Buscar estudante pelo nome..."
+                       oninput="filtrarModalEstudantes()"
+                       style="flex:1;">
+
+                <select id="modalFiltroNivel" onchange="filtrarModalEstudantes()"
+                        style="padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                    <option value="">Todos os Níveis</option>
+                    <option value="Pré-silábico">Pré-silábico</option>
+                    <option value="Silábico">Silábico</option>
+                    <option value="Silábico-Alfabético">Silábico-Alfabético</option>
+                    <option value="Alfabético">Alfabético</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <table id="modalTabelaEstudantes">
+                <thead>
+                    <tr>
+                        <th style="width:30%">Nome</th>
+                        <th class="text-center" style="width:14%">Série</th>
+                        <th class="text-center" style="width:22%">Nível de Escrita</th>
+                        <th class="text-center" style="width:12%">Período</th>
+                        <th class="text-center" style="width:8%">Ano</th>
+                        <th style="width:14%">Bairro</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTabelaBody"></tbody>
+            </table>
+            <div id="modalSemEstudantes" class="modal-vazio" style="display:none;">
+                <i class="fas fa-user-slash" style="font-size:28px; margin-bottom:8px; display:block;"></i>
+                Nenhum estudante encontrado.
+            </div>
+        </div>
+
+        <div class="modal-footer" id="modalFooter"></div>
+
     </div>
 </div>
+
+
+<!-- Dados dos estudantes injetados pelo Django -->
+<script>
+    const estudantesPorEscola = {
+        {% for escola in dados %}
+        "{{ escola.id }}": {
+            "nome": "{{ escola.nome|escapejs }}",
+            "localidade": "{{ escola.localidade|escapejs }}",
+            "total": {{ escola.total_estudantes|default:0 }},
+            "estudantes": [
+                {% for est in escola.estudantes %}
+                {
+                    "nome":    "{{ est.nome|escapejs }}",
+                    "serie":   "{{ est.serie|escapejs }}",
+                    "nivel":   "{{ est.nivel_escrita|escapejs }}",
+                    "periodo": "{{ est.periodo|escapejs }}",
+                    "ano":     "{{ est.ano|escapejs }}",
+                    "bairro":  "{{ est.bairro|escapejs }}"
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+</script>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
@@ -471,14 +699,10 @@
     let markerMap = new Map();
     let heatData = [];
     let escolasData = [];
-    let activeLayers = {
-        excelente: true,
-        bom: true,
-        atencao: true,
-        critico: true
-    };
+    let activeLayers = { excelente: true, bom: true, atencao: true, critico: true };
 
-    // Classificação da escola
+    // ── Helpers ──────────────────────────────────────────────
+
     function classificarEscola(percentual) {
         if (percentual >= 75) return 'excelente';
         if (percentual >= 50) return 'bom';
@@ -486,7 +710,6 @@
         return 'critico';
     }
 
-    // Cor baseada no percentual
     function getColor(percentual) {
         if (percentual >= 75) return '#27ae60';
         if (percentual >= 50) return '#5cb85c';
@@ -494,7 +717,8 @@
         return '#d9534f';
     }
 
-    // Inicializar mapa
+    // ── Inicializar mapa ──────────────────────────────────────
+
     function initMap() {
         map = L.map('mapa').setView([-14.235, -53.132], 5);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -504,57 +728,103 @@
         }).addTo(map);
     }
 
-    // Criar ícone customizado
+    // ── Ícone customizado ─────────────────────────────────────
+
     function criarIcone(percentual) {
         const cor = getColor(percentual);
         let tamanho = 36;
-        if (percentual >= 75) tamanho = 42;
+        if (percentual >= 75)      tamanho = 42;
         else if (percentual >= 50) tamanho = 38;
         else if (percentual >= 25) tamanho = 34;
-        else tamanho = 30;
-        
+        else                       tamanho = 30;
+
         const html = `<div style="
-            width: ${tamanho}px;
-            height: ${tamanho}px;
-            background: ${cor};
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: ${tamanho * 0.33}px;
-            font-family: Arial;
+            width:${tamanho}px; height:${tamanho}px;
+            background:${cor}; border-radius:50%;
+            border:3px solid white;
+            box-shadow:0 2px 5px rgba(0,0,0,0.3);
+            display:flex; align-items:center; justify-content:center;
+            color:white; font-weight:bold;
+            font-size:${tamanho * 0.33}px; font-family:Arial;
         ">${Math.round(percentual)}%</div>`;
-        
+
         return L.divIcon({
             html: html,
             className: 'custom-marker',
             iconSize: [tamanho, tamanho],
-            popupAnchor: [0, -tamanho/2]
+            popupAnchor: [0, -tamanho / 2]
         });
     }
 
-    // Criar popup
+    // ── Popup com botão de estudantes e níveis ─────────────────────────
+
     function criarPopup(escola) {
+        const dadosEst = estudantesPorEscola[escola.id];
+        const temEstudantes = dadosEst && dadosEst.total > 0;
+
+        // Calcula os totais de cada nível a partir do alfabetometro da escola
+        // Nota: O `escola.alfabetometro` vem do JSON da API, que contém os dados mais recentes.
+        const preSilabico = escola.alfabetometro ? escola.alfabetometro.qtd_pre_silabico || 0 : 0;
+        const silabico = escola.alfabetometro ? escola.alfabetometro.qtd_silabico || 0 : 0;
+        const silabicoAlfabetico = escola.alfabetometro ? escola.alfabetometro.qtd_silabico_alfabetico || 0 : 0;
+        const alfabetico = escola.alfabetometro ? escola.alfabetometro.qtd_alfabetico || 0 : 0;
+        const totalAlunosAlfabetometro = escola.alfabetometro ? escola.alfabetometro.qtd_alunos_ano || 0 : 0;
+
+        // Calcula os percentuais para cada nível
+        const percentualPre = totalAlunosAlfabetometro > 0 ? (preSilabico / totalAlunosAlfabetometro * 100).toFixed(1) : 0;
+        const percentualSilabico = totalAlunosAlfabetometro > 0 ? (silabico / totalAlunosAlfabetometro * 100).toFixed(1) : 0;
+        const percentualSilabicoAlfabetico = totalAlunosAlfabetometro > 0 ? (silabicoAlfabetico / totalAlunosAlfabetometro * 100).toFixed(1) : 0;
+        const percentualAlfabetico = totalAlunosAlfabetometro > 0 ? (alfabetico / totalAlunosAlfabetometro * 100).toFixed(1) : 0;
+
+        const btnEstudantes = temEstudantes
+            ? `<button
+                    onclick="abrirModal(${escola.id})"
+                    style="margin-top:10px; width:50%; padding:7px 10px;
+                           background:#4c9bc0; color:white; border:none;
+                           border-radius:6px; cursor:pointer; font-size:12px;
+                           font-weight:250; letter-spacing:0.3px;">
+                    👥  (${dadosEst.total})
+               </button>`
+            : `<div style="margin-top:8px; font-size:11px; color:#adb5bd; text-align:center;">
+                       Nenhum estudante cadastrado.
+                   </div>`;
+
         return `
-            <div style="min-width: 220px;">
-                <h4 style="margin: 0 0 5px; color: #1e2a3a;">${escola.nome}</h4>
-                <div style="font-size: 11px; color: #666;">${escola.localidade || 'Localidade não informada'}</div>
-                <hr style="margin: 8px 0;">
-                <div><strong>Total alunos:</strong> ${escola.total}</div>
-                <div><strong>Alfabetizados:</strong> ${escola.alfabetico}</div>
-                <div><strong>Percentual:</strong> <span style="color: ${getColor(escola.percentual)}; font-weight: bold;">${escola.percentual.toFixed(1)}%</span></div>
-                <div style="background: #e0e0e0; border-radius: 10px; height: 6px; margin-top: 8px;">
-                    <div style="width: ${escola.percentual}%; background: ${getColor(escola.percentual)}; height: 6px; border-radius: 10px;"></div>
+            <div style="min-width:230px;">
+                <h4 style="margin:0 0 4px; color:#1e2a3a; font-size:14px;">
+                    ${escola.nome}
+                </h4>
+                <div style="font-size:11px; color:#666; margin-bottom:8px;">
+                    ${escola.localidade || 'Localidade não informada'}
                 </div>
+                <hr style="margin:6px 0; border:none; border-top:1px solid #eee;">
+                <div style="font-size:12px; line-height:1.9;">
+                    <div><strong>Total alunos:</strong> ${escola.total}</div>
+                    <div><strong>Alfabetizados:</strong>
+                        <span style="color:${getColor(escola.percentual)};font-weight:bold;">
+                            ${escola.percentual.toFixed(1)}%
+                        </span>
+                    </div>
+                    <div style="margin-top: 10px; font-weight: bold;">Níveis de Escrita:</div>
+                    <ul style="list-style: none; padding: 0; margin: 5px 0 0 0; font-size: 11px;">
+                        <li>Pré-silábico: ${preSilabico} (${percentualPre}%)</li>
+                        <li>Silábico: ${silabico} (${percentualSilabico}%)</li>
+                        <li>Silábico-Alfabético: ${silabicoAlfabetico} (${percentualSilabicoAlfabetico}%)</li>
+                        <li>Alfabético: ${alfabetico} (${percentualAlfabetico}%)</li>
+                    </ul>
+                </div>
+                <div style="background:#e0e0e0;border-radius:10px;height:6px;margin:8px 0;">
+                    <div style="width:${escola.percentual}%;
+                                background:${getColor(escola.percentual)};
+                                height:6px; border-radius:10px;"></div>
+                </div>
+                ${btnEstudantes}
             </div>
         `;
     }
 
-    // Aplicar filtros por camada
+    // ── Camadas (filtros) ─────────────────────────────────────
+
     function aplicarFiltros() {
         markers.forEach(marker => {
             const escola = marker.escolaData;
@@ -568,24 +838,26 @@
         atualizarListaEscolas();
     }
 
-    // Alternar camada
     function toggleLayer(classe) {
         activeLayers[classe] = !activeLayers[classe];
         aplicarFiltros();
     }
 
-    // Selecionar escola
+    // ── Selecionar escola (sidebar) ───────────────────────────
+
     function selecionarEscola(id) {
         const escola = escolasData.find(e => e.id === id);
         if (!escola) return;
-        
+
         document.getElementById('selectedSchool').style.display = 'block';
         document.getElementById('selectedSchoolName').innerHTML = escola.nome;
-        document.getElementById('selectedSchoolMeta').innerHTML = `${escola.localidade || 'Localidade não informada'} • ${escola.total} alunos`;
-        document.getElementById('selectedProgress').style.width = `${escola.percentual}%`;
+        document.getElementById('selectedSchoolMeta').innerHTML =
+            `${escola.localidade || 'Localidade não informada'} • ${escola.total} alunos`;
+        document.getElementById('selectedProgress').style.width   = `${escola.percentual}%`;
         document.getElementById('selectedProgress').style.background = getColor(escola.percentual);
-        document.getElementById('selectedSchoolPercent').innerHTML = `${escola.percentual.toFixed(1)}% alfabetização`;
-        
+        document.getElementById('selectedSchoolPercent').innerHTML =
+            `${escola.percentual.toFixed(1)}% alfabetização`;
+
         if (escola.latitude && escola.longitude) {
             map.setView([escola.latitude, escola.longitude], 15);
             const marker = markerMap.get(escola.id);
@@ -593,158 +865,249 @@
         }
     }
 
-    // Atualizar lista de escolas no sidebar
+    // ── Lista lateral de escolas ──────────────────────────────
+
     function atualizarListaEscolas() {
         const container = document.getElementById('schools-list-container');
-        
         const grupos = { excelente: [], bom: [], atencao: [], critico: [] };
         const titulos = {
             excelente: { nome: 'Excelente', cor: '#27ae60' },
-            bom: { nome: 'Bom', cor: '#5cb85c' },
-            atencao: { nome: 'Atenção', cor: '#f0ad4e' },
-            critico: { nome: 'Crítico', cor: '#d9534f' }
+            bom:       { nome: 'Bom',       cor: '#5cb85c' },
+            atencao:   { nome: 'Atenção',   cor: '#f0ad4e' },
+            critico:   { nome: 'Crítico',   cor: '#d9534f' }
         };
-        
+
         escolasData.forEach(escola => {
             const classe = classificarEscola(escola.percentual);
-            if (activeLayers[classe]) {
-                grupos[classe].push(escola);
-            }
+            if (activeLayers[classe]) grupos[classe].push(escola);
         });
-        
+
         let html = '';
         for (const [classe, escolas] of Object.entries(grupos)) {
             if (escolas.length > 0) {
                 html += `<div class="school-list-group">
-                            <div class="school-list-group-title" style="color: ${titulos[classe].cor};">
+                            <div class="school-list-group-title" style="color:${titulos[classe].cor};">
                                 ${titulos[classe].nome} (${escolas.length})
                             </div>`;
                 escolas.forEach(escola => {
                     html += `<div class="school-list-item ${classe}" onclick="selecionarEscola(${escola.id})">
                                 <div class="school-list-name">${escola.nome}</div>
-                                <div class="school-list-percent"><strong>${escola.percentual.toFixed(1)}%</strong> de alfabetização</div>
+                                <div class="school-list-percent">
+                                    <strong>${escola.percentual.toFixed(1)}%</strong> de alfabetização
+                                </div>
                                 <div class="school-list-location">${escola.localidade || ''}</div>
-                            </div>`;
+                             </div>`;
                 });
                 html += `</div>`;
             }
         }
-        
-        if (html === '') {
-            html = '<div class="loading-placeholder">Nenhuma escola encontrada</div>';
-        }
-        
-        container.innerHTML = html;
+
+        container.innerHTML = html || '<div class="loading-placeholder">Nenhuma escola encontrada</div>';
     }
 
-    // Buscar escolas
+    // ── Busca de escolas ──────────────────────────────────────
+
     function buscarEscolas(termo) {
+        const resultsDiv = document.getElementById('search-results');
         if (!termo || termo.length < 2) {
-            document.getElementById('search-results').innerHTML = '';
+            resultsDiv.innerHTML = '';
             return;
         }
-        
-        const resultados = escolasData.filter(e => 
-            e.nome.toLowerCase().includes(termo.toLowerCase())
-        ).slice(0, 8);
-        
-        const resultsDiv = document.getElementById('search-results');
+
+        const resultados = escolasData
+            .filter(e => e.nome.toLowerCase().includes(termo.toLowerCase()))
+            .slice(0, 8);
+
         if (resultados.length === 0) {
             resultsDiv.innerHTML = '<div class="loading-placeholder">Nenhuma escola encontrada</div>';
             return;
         }
-        
-        let html = '';
-        resultados.forEach(e => {
-            html += `<div class="search-result-item" onclick="selecionarEscola(${e.id})">
-                        <strong>${e.nome}</strong><br>
-                        <small>${e.localidade || ''} - ${e.percentual.toFixed(1)}%</small>
-                    </div>`;
-        });
-        resultsDiv.innerHTML = html;
+
+        resultsDiv.innerHTML = resultados.map(e => `
+            <div class="search-result-item" onclick="selecionarEscola(${e.id})">
+                <strong>${e.nome}</strong><br>
+                <small>${e.localidade || ''} - ${e.percentual.toFixed(1)}%</small>
+            </div>
+        `).join('');
     }
 
-    // Carregar dados da API
+    // ── Carregar dados da API ─────────────────────────────────
+
     function carregarDados() {
         fetch("{% url 'dados_escolas_json' %}")
             .then(res => res.json())
             .then(data => {
-                escolasData = data.filter(e => e.latitude && e.longitude && e.alfabetometro)
+                escolasData = data
+                    .filter(e => e.latitude && e.longitude && e.alfabetometro)
                     .map((e, index) => {
-                        const total = e.alfabetometro.qtd_alunos_ano || 0;
+                        const total      = e.alfabetometro.qtd_alunos_ano || 0;
                         const alfabetico = e.alfabetometro.qtd_alfabetico || 0;
                         const percentual = total > 0 ? (alfabetico / total) * 100 : 0;
                         return { ...e, total, alfabetico, percentual, id: e.id || index + 1 };
                     });
-                
-                let contadores = { excelente: 0, bom: 0, atencao: 0, critico: 0 };
+
+                const contadores = { excelente: 0, bom: 0, atencao: 0, critico: 0 };
                 const bounds = [];
-                
+
                 escolasData.forEach(escola => {
-                    if (escola.latitude && escola.longitude) {
-                        bounds.push([escola.latitude, escola.longitude]);
-                        contadores[classificarEscola(escola.percentual)]++;
-                        
-                        const marker = L.marker([escola.latitude, escola.longitude], {
-                            icon: criarIcone(escola.percentual)
-                        }).addTo(map);
-                        
-                        marker.bindPopup(criarPopup(escola));
-                        marker.escolaData = escola;
-                        markers.push(marker);
-                        markerMap.set(escola.id, marker);
-                        
-                        heatData.push([escola.latitude, escola.longitude, escola.percentual / 100]);
-                    }
+                    bounds.push([escola.latitude, escola.longitude]);
+                    contadores[classificarEscola(escola.percentual)]++;
+
+                    const marker = L.marker([escola.latitude, escola.longitude], {
+                        icon: criarIcone(escola.percentual)
+                    }).addTo(map);
+
+                    marker.bindPopup(criarPopup(escola), { maxWidth: 280 });
+                    marker.escolaData = escola;
+                    markers.push(marker);
+                    markerMap.set(escola.id, marker);
+
+                    heatData.push([escola.latitude, escola.longitude, escola.percentual / 100]);
                 });
-                
+
                 document.getElementById('count-excelente').innerText = contadores.excelente;
-                document.getElementById('count-bom').innerText = contadores.bom;
-                document.getElementById('count-atencao').innerText = contadores.atencao;
-                document.getElementById('count-critico').innerText = contadores.critico;
-                
+                document.getElementById('count-bom').innerText       = contadores.bom;
+                document.getElementById('count-atencao').innerText   = contadores.atencao;
+                document.getElementById('count-critico').innerText   = contadores.critico;
+
                 if (bounds.length) map.fitBounds(bounds);
-                
-                heatLayer = L.heatLayer(heatData, { radius: 25, blur: 15, maxZoom: 17, minOpacity: 0.3 });
-                
+
+                heatLayer = L.heatLayer(heatData, {
+                    radius: 25, blur: 15, maxZoom: 17, minOpacity: 0.3
+                });
+
                 atualizarListaEscolas();
             })
             .catch(err => {
                 console.error(err);
-                document.getElementById('schools-list-container').innerHTML = '<div class="loading-placeholder" style="color: red;">Erro ao carregar dados</div>';
+                document.getElementById('schools-list-container').innerHTML =
+                    '<div class="loading-placeholder" style="color:red;">Erro ao carregar dados</div>';
             });
     }
 
-    // Alternar heatmap
+    // ── Heatmap / Zoom ────────────────────────────────────────
+
     function alternarHeatmap() {
         if (!heatLayer) return;
         if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
         else map.addLayer(heatLayer);
     }
 
-    // Resetar zoom
     function resetMapView() {
         if (markers.length) {
-            const bounds = markers.filter(m => map.hasLayer(m)).map(m => m.getLatLng());
+            const bounds = markers
+                .filter(m => map.hasLayer(m))
+                .map(m => m.getLatLng());
             if (bounds.length) map.fitBounds(bounds);
         } else {
             map.setView([-14.235, -53.132], 5);
         }
     }
 
-    // Debounce para busca
+    // ── Modal de Estudantes ───────────────────────────────────
+
+    let _escolaIdAtual = null;
+
+    function abrirModal(escolaId) {
+        const dados = estudantesPorEscola[escolaId];
+        if (!dados) return;
+
+        _escolaIdAtual = escolaId;
+
+        document.getElementById('modalEscolaNome').textContent = dados.nome;
+        document.getElementById('modalEscolaMeta').textContent =
+            `${dados.localidade} • ${dados.total} estudante(s)`;
+        document.getElementById('modalBuscaEstudanteNome').value = ''; // Limpa a busca por nome
+        document.getElementById('modalFiltroNivel').value = ''; // Limpa o filtro de nível
+        document.getElementById('modalFooter').textContent =
+            `${dados.total} estudante(s) encontrado(s)`;
+
+        renderizarEstudantes(dados.estudantes);
+        document.getElementById('modalEstudantes').classList.add('ativo');
+    }
+
+    function fecharModal() {
+        document.getElementById('modalEstudantes').classList.remove('ativo');
+        _escolaIdAtual = null;
+    }
+
+    function fecharModalFora(event) {
+        if (event.target.id === 'modalEstudantes') fecharModal();
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') fecharModal();
+    });
+
+    function badgeNivel(nivel) {
+        const mapa = {
+            'Alfabético':          'badge-alfabetico',
+            'Silábico-Alfabético': 'badge-silabico-alfabetico',
+            'Silábico':            'badge-silabico',
+        };
+        const cls = mapa[nivel] || 'badge-pre-silabico';
+        return `<span class="badge-nivel ${cls}">${nivel || '—'}</span>`;
+    }
+
+    function renderizarEstudantes(lista) {
+        const tbody  = document.getElementById('modalTabelaBody');
+        const semEst = document.getElementById('modalSemEstudantes');
+        const tabela = document.getElementById('modalTabelaEstudantes');
+
+        if (!lista || lista.length === 0) {
+            tbody.innerHTML     = '';
+            tabela.style.display = 'none';
+            semEst.style.display = 'block';
+            return;
+        }
+
+        tabela.style.display = 'table';
+        semEst.style.display = 'none';
+
+        tbody.innerHTML = lista.map(est => `
+            <tr>
+                <td>${est.nome}</td>
+                <td class="text-center">${est.serie}</td>
+                <td class="text-center">${badgeNivel(est.nivel)}</td>
+                <td class="text-center">${est.periodo}</td>
+                <td class="text-center">${est.ano}</td>
+                <td>${est.bairro}</td>
+            </tr>
+        `).join('');
+    }
+
+    // FUNÇÃO ATUALIZADA: filtrarModalEstudantes
+    function filtrarModalEstudantes() {
+        if (_escolaIdAtual === null) return;
+
+        const todos = estudantesPorEscola[_escolaIdAtual].estudantes;
+        const termoNome = document.getElementById('modalBuscaEstudanteNome').value.toLowerCase();
+        const nivelSelecionado = document.getElementById('modalFiltroNivel').value;
+
+        const filtrados = todos.filter(e => {
+            const nomeCorresponde = termoNome.length < 2 || e.nome.toLowerCase().includes(termoNome);
+            const nivelCorresponde = nivelSelecionado === "" || e.nivel === nivelSelecionado;
+            return nomeCorresponde && nivelCorresponde;
+        });
+
+        renderizarEstudantes(filtrados);
+        document.getElementById('modalFooter').textContent =
+            `${filtrados.length} de ${todos.length} estudante(s)`;
+    }
+
+    // ── Debounce busca lateral ────────────────────────────────
+
     let searchTimeout;
-    document.getElementById('search-escola').addEventListener('input', function() {
+    document.getElementById('search-escola').addEventListener('input', function () {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => buscarEscolas(this.value), 300);
     });
 
-    // Inicializar
+    // ── Boot ──────────────────────────────────────────────────
     initMap();
     carregarDados();
 </script>
 
 </body>
 </html>
-
-{% endblock %}
+{%endblock %}
