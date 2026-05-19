@@ -4,30 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Sistema de Indicadores Educacionais SABE - Secretaria Municipal de Educação de Juazeiro-BA. Acompanhe métricas e indicadores educacionais.">
-    <meta name="theme-color" content="#F97316">
+    <meta name="theme-color" content="#4c9bc0"> <!-- Ajustado para a cor primária -->
     <meta name="author" content="NAM - Núcleo de Avaliação e Monitoramento">
-    
+    <meta name="robots" content="index, follow"> <!-- Para SEO: permitir indexação e seguir links -->
+    <meta name="apple-mobile-web-app-capable" content="yes"> <!-- Para PWA/Adicionar à tela inicial -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <!-- Estilo da barra de status iOS -->
+
     <title>SABE | Sistema de Avaliação da Educação - Juazeiro-BA</title>
+
+    <!-- Favicon (adicionar um favicon real para melhor UX) -->
+    <!-- <link rel="icon" href="/favicon.ico" sizes="any"> -->
+    <!-- <link rel="icon" href="/icon.svg" type="image/svg+xml"> -->
+    <!-- <link rel="apple-touch-icon" href="/apple-touch-icon.png"> -->
 
     <!-- Preconnect para otimização de carregamento -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com"> <!-- Removido crossorigin aqui, pois o próximo link já tem -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <!-- Font Awesome 6 (versão mais recente) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Google Fonts: Inter + Fallback -->
+    <!-- Adicionado font-display=swap para melhor performance de carregamento de fontes -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 
     <style>
         /* ====== RESET & VARIÁVEIS CSS MODERNIZADAS ====== */
         :root {
             --accent-primary: #4c9bc0;
-            --accent-primary-dark: #4c9bc0;
-            --accent-primary-darker: #4c9bc0;
-            --accent-light: #FFF7ED;
-            --accent-medium: #FFEDD5;
+            --accent-primary-dark: #3a7a9a; /* Escurecido um pouco para hover */
+            --accent-primary-darker: #2b5c75; /* Mais escuro para gradientes */
+            --accent-light: #e6f2f7; /* Cor clara para fundos de itens ativos */
+            --accent-medium: #c2e0ec; /* Cor média, se necessário */
 
             --gray-950: #0F172A;
             --gray-900: #1E293B;
@@ -47,20 +56,21 @@
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            
+
             --radius-sm: 6px;
             --radius-md: 10px;
             --radius-lg: 14px;
             --radius-xl: 18px;
-            
+
             --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
             --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-            
+
             --sidebar-width: 280px;
-            --header-height: auto;
+            --header-height: auto; /* Manter como auto, pois o header é dinâmico */
         }
 
-        * {
+        /* Reset básico */
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -70,6 +80,7 @@
         html {
             scroll-behavior: smooth;
             -webkit-text-size-adjust: 100%;
+            font-size: 16px; /* Base para rem */
         }
 
         body {
@@ -77,7 +88,6 @@
             background: var(--gray-50);
             color: var(--gray-700);
             line-height: 1.5;
-            font-size: 16px;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -92,7 +102,7 @@
         /* Skip to content link - acessibilidade */
         .skip-to-content {
             position: absolute;
-            top: -40px;
+            top: -9999px; /* Esconder fora da tela */
             left: 0;
             background: var(--accent-primary);
             color: white;
@@ -104,7 +114,7 @@
         }
 
         .skip-to-content:focus {
-            top: 10px;
+            top: 10px; /* Mostrar ao focar */
             outline: none;
         }
 
@@ -123,6 +133,10 @@
 
         a:hover {
             color: var(--accent-primary-dark);
+        }
+
+        button {
+            cursor: pointer; /* Adicionado para botões */
         }
 
         /* ====== LAYOUT PRINCIPAL ====== */
@@ -145,23 +159,23 @@
             overflow-y: auto;
             transition: transform var(--transition-base), width var(--transition-base);
             z-index: 1000;
-            scrollbar-width: thin;
+            scrollbar-width: thin; /* Firefox */
         }
 
-        /* Scrollbar customizada */
+        /* Scrollbar customizada Webkit */
         .sidebar::-webkit-scrollbar {
             width: 5px;
         }
-        
+
         .sidebar::-webkit-scrollbar-track {
             background: var(--gray-100);
         }
-        
+
         .sidebar::-webkit-scrollbar-thumb {
             background: var(--gray-300);
             border-radius: 10px;
         }
-        
+
         .sidebar::-webkit-scrollbar-thumb:hover {
             background: var(--gray-400);
         }
@@ -174,6 +188,9 @@
 
         .app-logo {
             margin-bottom: 12px;
+            display: flex; /* Para centralizar o ícone */
+            justify-content: center;
+            align-items: center;
         }
 
         .app-logo-icon {
@@ -182,11 +199,10 @@
             background: var(--accent-light);
             width: 70px;
             height: 70px;
-            display: inline-flex;
+            display: inline-flex; /* Mantido inline-flex para o ícone */
             align-items: center;
             justify-content: center;
             border-radius: 50%;
-            margin-bottom: 12px;
         }
 
         .app-name {
@@ -300,7 +316,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-width: 0;
+            min-width: 0; /* Permite que o conteúdo encolha */
             background: var(--gray-50);
         }
 
@@ -386,11 +402,13 @@
             backdrop-filter: blur(2px);
             z-index: 999;
             display: none;
+            opacity: 0; /* Controlar opacidade para transição */
             transition: opacity var(--transition-base);
         }
 
         .sidebar-overlay.active {
             display: block;
+            opacity: 1;
         }
 
         @media (max-width: 1024px) {
@@ -427,7 +445,7 @@
             .content-header .title {
                 font-size: 20px;
             }
-            
+
             .content-header .subtitle {
                 font-size: 13px;
             }
@@ -452,7 +470,7 @@
             .sidebar,
             .sidebar-toggle,
             .sidebar-overlay {
-                display: none;
+                display: none !important; /* Usar !important para garantir que não apareçam */
             }
 
             .layout {
@@ -462,6 +480,7 @@
             .main-content-area {
                 margin: 0;
                 padding: 0;
+                width: 100%; /* Ocupar toda a largura */
             }
 
             .content-header {
@@ -508,18 +527,18 @@
         <!-- MENU LATERAL MELHORADO -->
         <aside class="sidebar" id="sidebar" aria-label="Menu de navegação principal">
             <div class="sidebar-header">
-                <div class="app-logo">
-                    
+                <div class="app-logo" role="img" aria-label="Logo do Sistema SABE">
+                    <i class="" aria-hidden="true"></i> <!-- Ícone de exemplo -->
                 </div>
-                <div class="app-name">NAM</div>
+                <div class="app-name">NAM</div> <!-- Nome do sistema no logo -->
                 <div class="app-subtitle">
                     Núcleo de Avaliação e Monitoramento<br>
-                  
+                    Juazeiro-BA
                 </div>
             </div>
 
             <nav class="menu-nav" aria-label="Menu principal">
-                <div class="sidebar-section-title"></div>
+                <div class="sidebar-section-title">Indicadores</div>
                 <ul>
                     <li>
                         <a href="/dashboard/painel-esferas/" class="menu-item">
@@ -545,32 +564,32 @@
                             <span>Análise por Habilidade</span>
                         </a>
                     </li>
-
-                     <li>
+                    <li>
                         <a href="/dashboard/relatorio-resultado-preliminar-saeb-2025/" class="menu-item">
-                            <i class="fas fa-chart-simple" aria-hidden="true"></i>
-                            <span>Resultado Preliminar SAEB 2025</span>
+                            <i class="fas fa-chart-column" aria-hidden="true"></i> <!-- Ícone mais específico para relatório -->
+                            <span>Resultado Preliminar SAEB</span>
                         </a>
                     </li>
-
-                     <li>
+                    <li>
                         <a href="/dashboard/mapa-escolas/" class="menu-item">
-                            <i class="fas fa-chart-simple" aria-hidden="true"></i>
-                            <span>Mapa da Alfabetização_ Abril</span>
+                            <i class="fas fa-map-location-dot" aria-hidden="true"></i> <!-- Ícone mais específico para mapa -->
+                            <span>Mapa da Alfabetização</span>
                         </a>
                     </li>
-                    
-                    
-
-                     <li>
-                        <a href="/dashboard/relatorio-alfabetometro/" class="menu-item">
-                            <i class="fas fa-chart-simple" aria-hidden="true"></i>
-                            <span>Relatório Alfabetômetro</span>
+                    <li>
+                        <a href="/dashboard/relatorio-desempenho/" class="menu-item">
+                            <i class="fas fa-gauge-high" aria-hidden="true"></i> <!-- Ícone mais específico para desempenho -->
+                            <span>Relatório de Desempenho</span>
                         </a>
-                    
+                    </li>
+                    <li>
+                        <a href="/dashboard/relatorio-alfabetometro/" class="menu-item">
+                            <i class="fas fa-spell-check" aria-hidden="true"></i> <!-- Ícone mais específico para alfabetômetro -->
+                            <span>Alfabetômetro</span>
+                        </a>
+                    </li>
                 </ul>
 
-                
                 <div class="sidebar-section-title">Suporte</div>
                 <ul>
                     <li>
@@ -605,7 +624,7 @@
         <div class="main-content-area" id="main-content" tabindex="-1">
 
             <header class="content-header">
-                
+                <h1 class="title"></h1> <!-- Usar H1 para o título principal da página -->
                 <p class="subtitle">
                     <span>Secretaria Municipal de Educação - Juazeiro</span>
                     <span>Superintendência Pedagógica</span>
@@ -626,7 +645,7 @@
         </div>
     </div>
 
-    <script>
+    <script defer> /* Adicionado 'defer' para não bloquear o render */
         (function() {
             'use strict';
 
@@ -635,7 +654,7 @@
             const mobileToggle = document.getElementById('mobileMenuToggle');
             const overlay = document.getElementById('sidebarOverlay');
             const menuLinks = document.querySelectorAll('.menu-item');
-            
+
             // Estado do menu
             let isMenuOpen = false;
 
@@ -648,7 +667,7 @@
                     mobileToggle.setAttribute('aria-expanded', 'false');
                 }
                 isMenuOpen = false;
-                document.body.style.overflow = '';
+                document.body.style.overflow = ''; // Restaura o scroll
             }
 
             // Função para abrir o menu mobile
@@ -660,7 +679,7 @@
                     mobileToggle.setAttribute('aria-expanded', 'true');
                 }
                 isMenuOpen = true;
-                document.body.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden'; // Impede o scroll do body
             }
 
             // Toggle do menu mobile
@@ -691,8 +710,9 @@
             // Fechar menu ao clicar em um link (mobile)
             menuLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
+                    // Adicionado um pequeno delay para a transição do menu ser visível
                     if (window.innerWidth <= 1024) {
-                        setTimeout(closeMobileMenu, 100);
+                        setTimeout(closeMobileMenu, 100); 
                     }
                 });
             });
@@ -707,20 +727,32 @@
             // Marcar item ativo baseado na URL atual
             function setActiveMenuItem() {
                 const currentPath = window.location.pathname;
+                let foundActive = false;
+
                 menuLinks.forEach(link => {
+                    link.classList.remove('active'); // Remover de todos primeiro
                     const href = link.getAttribute('href');
-                    if (href && href !== '#' && currentPath.includes(href)) {
-                        link.classList.add('active');
-                    } else if (currentPath === '/' || currentPath === '/dashboard/') {
-                        const firstLink = document.querySelector('.menu-item[href="/dashboard/painel-esferas/"]');
-                        if (firstLink) firstLink.classList.add('active');
+                    if (href && href !== '#') {
+                        // Usar startsWith para corresponder a rotas base
+                        if (currentPath.startsWith(href)) {
+                            link.classList.add('active');
+                            foundActive = true;
+                        }
                     }
                 });
+
+                // Se nenhuma rota específica foi ativada e estamos na raiz ou dashboard
+                if (!foundActive && (currentPath === '/' || currentPath === '/dashboard/')) {
+                    const defaultLink = document.querySelector('.menu-item[href="/dashboard/painel-esferas/"]');
+                    if (defaultLink) {
+                        defaultLink.classList.add('active');
+                    }
+                }
             }
 
             setActiveMenuItem();
 
-            // Helper links (feedback e ajuda)
+            // Helper links (feedback e ajuda) - Considerar usar um modal para melhor UX
             const helpLink = document.getElementById('helpLink');
             const feedbackLink = document.getElementById('feedbackLink');
 

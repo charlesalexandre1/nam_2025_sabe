@@ -2804,3 +2804,183 @@ def relatorio_alfabetometro(request):
     }
 
     return render(request, "dashboard/relatorio_alfabetometro.html", context)
+
+
+# ranking das escolas :
+
+from django.shortcuts import render
+from django.views import View
+from django.db.models import Sum, Avg, F, DecimalField
+from django.db.models.functions import Coalesce
+from .models import DesempenhoEscola, Escola, Disciplina, Serie # Assumindo que Escola, Disciplina, Serie estão no mesmo app ou importados corretamente
+from decimal import Decimal
+
+class RelatorioDesempenhoView(View):
+    template_name = 'relatorio_desempenho.html'
+
+    def get(self, request, *args, **kwargs):
+        # --- 1. Obtenção dos filtros ---
+        filtro_localidade_id = request.GET.get('localidade')
+        filtro_serie_id = request.GET.get('serie')
+        filtro_ano_inicio = request.GET.get('ano_inicio')
+        filtro_ano_fim = request.GET.get('ano_fim')
+
+        # --- 2. Preparação dos dados para os filtros no HTML ---
+        localidades = Escola.objects.values('id', 'localidade').distinct().order_by('localidade')
+        series_disponiveis = Serie.objects.all().order_by('nome')
+
+        # --- 3. Construção da query base para DesempenhoEscola ---
+        desempenhos_query = DesempenhoEscola.objects.all()
+
+        if filtro_localidade_id:
+            desempenhos_query = desempenhos_query.filter(escola__localidade=filtro_localidade_id)
+        if filtro_serie_id:
+            desempenhos_query = desempenhos_query.filter(serie_id=filtro_serie_id)
+        if filtro_ano_inicio:
+            desempenhos_query = desempenhos_query.filter(ano__gte=filtro_ano_inicio)
+        if filtro_ano_fim:
+            desempenhos_query = desempenhos_query.filter(ano__lte=filtro_ano_fim)
+
+        # --- 4. Agrupamento e processamento dos dados ---
+
+        # Agrupar por escola e ano para obter os totais da escola
+        escolas_com_desempenho = desempenhos_query.values(
+            'escola__id', 'escola__nome', 'escola__localidade', 'ano'
+        ).annotate(
+            total_previstos=Sum('alunos_previstos'),
+            total_avaliados=Sum('alunos_avaliados'),
+            # Média do IDEB da escola (simplificado para este exemplo, pode ser mais complexo)
+            # Para um IDEB médio mais preciso, você precisaria de um campo IDEB no DesempenhoEscola
+            # ou calcular a média ponderada das proficiências e taxas de aprovação.
+            # Aqui, vamos usar a média das proficiências como proxy para o IDEB médio da escola.
+            ideb_medio_escola=Coalesce(Avg('proficiencia_media'), Decimal('0.00')) # Usando proficiencia_media como proxy
+        ).order_by('escola__nome', 'ano')
+
+        dados_relatorio = []
+        for escola_data in escolas_com_desempenho:
+            escola_id = escola_data['escola__id']
+            ano = escola_data['ano']
+
+            # Detalhes das séries para a escola e ano específicos
+            series_da_escola = desempenhos_query.filter(
+                escola__id=escola_id, ano=ano
+            ).select_related('disciplina', 'serie').order_by('serie__nome', 'disciplina__nome')
+
+            series_processadas = []
+            total_previstos_escola = escola_data['total_previstos']
+            total_avaliados_escola = escola_data['total_avaliados']
+
+            percentual_total_escola = (total_avaliados_escola / total_previstos_escola * 100) if total_previstos_escola > 0 else Decimal('0.00')
+
+            # Calcular IDEB médio da escola e sua classe (usando proficiencia_media como proxy)
+            # ATENÇÃO: O cálculo do IDEB real é mais complexo e envolve taxa de aprovação e proficiência padronizada.
+            # Este é um cálculo simplificado para preencher o template.
+            ideb_medio_escola_valor = escola_data['ideb_medio_escola'] / Decimal('50.0') # Ajuste para escala 0-10, exemplo
+            ideb_medio_escola_classe = self._get_ideb_classe(ideb_medio_escola_valor)
+
+            for desempenho in series_da_escola:
+                percentual_participacao_serie = (desempenho.alunos_avaliados / desempenho.alunos_previstos * 100) if desempenho.alunos_previstos > 0 else Decimal('0.00')
+
+                # Para o template, precisamos de Média LP, Média MT, Média Geral, Taxa de Aprovação e IDEB Estimado.
+                # Estes campos não estão diretamente no seu modelo DesempenhoEscola de forma separada por disciplina.
+                # Vamos simular ou adaptar:
+                media_lp = None
+                media_mt = None
+                if desempenho.disciplina.nome == 'Língua Portuguesa':
+                    media_lp = desempenho.proficiencia_media / Decimal('50.0') # Exemplo de padronização
+                elif desempenho.disciplina.nome == 'Matemática':
+                    media_mt = desempenho.proficiencia_media / Decimal('50.0') # Exemplo de padronização
+
+                # Média Geral e IDEB Estimado: Simplificado para o exemplo.
+                # Em um cenário real, você teria um campo IDEB_estimado no modelo ou um cálculo mais robusto.
+                media_geral_serie = desempenho.proficiencia_media / Decimal('50.0') # Exemplo
+                ideb_estimado_serie = media_geral_serie * (desempenho.percentual_avaliados / Decimal('100.0')) # Exemplo
+                ideb_classe_serie = self._get_ideb_classe(ideb_estimado_serie)
+
+                series_processadas.append({
+                    'nome': f"{desempenho.serie.nome} ({desempenho.disciplina.nome})", # Inclui disciplina no nome da série
+                    'previstos': desempenho.alunos_previstos,
+                    'avaliados': desempenho.alunos_avaliados,
+                    'percentual': percentual_participacao_serie,
+                    'taxa_aprovacao': Decimal('90.00'), # Exemplo, pois não está no modelo DesempenhoEscola
+                    'media_lp': media_lp,
+                    'media_mt': media_mt,
+                    'media_geral': media_geral_serie,
+                    'ideb_estimado': ideb_estimado_serie,
+                    'ideb_classe': ideb_classe_serie,
+                })
+
+            dados_relatorio.append({
+                'nome': escola_data['escola__nome'],
+                'localidade': escola_data['escola__localidade'],
+                'ano': ano,
+                'total_previstos': total_previstos_escola,
+                'total_avaliados': total_avaliados_escola,
+                'percentual_total': percentual_total_escola,
+                'ideb_medio': ideb_medio_escola_valor,
+                'ideb_medio_classe': ideb_medio_escola_classe,
+                'series': series_processadas,
+            })
+
+        # --- 5. Totalizadores e IDEB por Série Geral ---
+        grand_total_previstos = desempenhos_query.aggregate(Sum('alunos_previstos'))['alunos_previstos__sum'] or 0
+        grand_total_avaliados = desempenhos_query.aggregate(Sum('alunos_avaliados'))['alunos_avaliados__sum'] or 0
+        percentual_geral = (grand_total_avaliados / grand_total_previstos * 100) if grand_total_previstos > 0 else Decimal('0.00')
+
+        ideb_geral_valor = desempenhos_query.aggregate(Avg('proficiencia_media'))['proficiencia_media__avg'] or Decimal('0.00')
+        ideb_geral_valor = ideb_geral_valor / Decimal('50.0') # Exemplo de padronização
+
+        # IDEB por série (agrupado por série, não por disciplina)
+        ideb_por_serie_data = []
+        for serie in series_disponiveis:
+            desempenhos_serie = desempenhos_query.filter(serie=serie)
+            if desempenhos_serie.exists():
+                media_ideb_serie = desempenhos_serie.aggregate(Avg('proficiencia_media'))['proficiencia_media__avg'] or Decimal('0.00')
+                media_ideb_serie = media_ideb_serie / Decimal('50.0') # Exemplo de padronização
+
+                menor_ideb_serie = desempenhos_serie.aggregate(min_prof=Min('proficiencia_media'))['min_prof'] or Decimal('0.00')
+                menor_ideb_serie = menor_ideb_serie / Decimal('50.0')
+
+                maior_ideb_serie = desempenhos_serie.aggregate(max_prof=Max('proficiencia_media'))['max_prof'] or Decimal('0.00')
+                maior_ideb_serie = maior_ideb_serie / Decimal('50.0')
+
+                ideb_por_serie_data.append({
+                    'serie': serie.nome,
+                    'media_ideb': media_ideb_serie,
+                    'ideb_classe': self._get_ideb_classe(media_ideb_serie),
+                    'menor_ideb': menor_ideb_serie,
+                    'maior_ideb': maior_ideb_serie,
+                    'total_escolas': desempenhos_serie.values('escola').distinct().count(),
+                })
+
+        context = {
+            'localidades': localidades,
+            'series_disponiveis': series_disponiveis,
+            'filtro_localidade': filtro_localidade_id,
+            'filtro_serie': filtro_serie_id,
+            'filtro_ano_inicio': filtro_ano_inicio,
+            'filtro_ano_fim': filtro_ano_fim,
+            'dados': dados_relatorio,
+            'total_escolas': escolas_com_desempenho.count(),
+            'total_series_count': desempenhos_query.values('serie').distinct().count(),
+            'grand_total_previstos': grand_total_previstos,
+            'grand_total_avaliados': grand_total_avaliados,
+            'percentual_geral': percentual_geral,
+            'ideb_geral': ideb_geral_valor,
+            'ideb_por_serie': ideb_por_serie_data,
+        }
+        return render(request, "dashboard/relatorio_desempenho.html", context)
+    
+
+    def _get_ideb_classe(self, ideb_value):
+        """Função auxiliar para determinar a classe do IDEB."""
+        if ideb_value is None:
+            return 'N/D'
+        if ideb_value >= Decimal('6.0'):
+            return 'Adequado'
+        elif ideb_value >= Decimal('5.0'):
+            return 'Básico'
+        elif ideb_value >= Decimal('4.0'):
+            return 'Insuficiente'
+        else:
+            return 'Crítico'

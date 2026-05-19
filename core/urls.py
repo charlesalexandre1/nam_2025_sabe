@@ -53,6 +53,7 @@ urlpatterns = [
     path('dashboard/mapa-escolas/', views.mapa_escolas, name='mapa_escolas'),
     path('dados-escolas/', views.dados_escolas_json, name='dados_escolas_json'),
     path('dashboard/relatorio-alfabetometro/', views.relatorio_alfabetometro, name='relatorio_alfabetometro'),
+    path('dashboard/relatorio-desempenho/', views.RelatorioDesempenhoView.as_view(), name='relatorio_desempenho'),
 ]
     
 
